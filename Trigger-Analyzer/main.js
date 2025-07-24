@@ -1,52 +1,208 @@
+function regenerateEdges() {
+    if (!nodesView) return;
 
-// global variables
-var container = document.getElementById('mynetwork');
+    const updatedEdges = [];
+
+    for (const node of nodesView.get()) {
+        const id = node.id;
+
+        if (node.house) {
+            // Triggers: rewire links
+            const raw = nodesData.get(id);
+            const actions = raw?.actions || [];
+            const eventsList = raw?.events || [];
+
+            for (const action of actions) {
+                switch (action.type) {
+                    case 12:
+                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('destroy')});
+                        break;
+                    case 22:
+                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('force')});
+                        break;
+                    case 53:
+                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('enable')});
+                        break;
+                    case 54:
+                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('disable')});
+                        break;
+                }
+            }
+
+            for (const event of eventsList) {
+                switch (event.type) {
+                    case 36:
+                        updatedEdges.push({from: 'L' + event.p[0], to: id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
+                        break;
+                    case 37:
+                        updatedEdges.push({from: 'L' + event.p[0], to: id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
+                        break;
+                    case 27:
+                        updatedEdges.push({from: 'G' + event.p[0], to: id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
+                        break;
+                    case 28:
+                        updatedEdges.push({from: 'G' + event.p[0], to: id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
+                        break;
+                }
+            }
+
+            if (raw.link && raw.link.trim() !== '<none>') {
+                updatedEdges.push({from: id, to: raw.link, arrows: "to;from", color: getTriggerColor('link')});
+            }
+        }
+    }
+
+    // Re-apply the edges
+    network.setData({
+        nodes: nodesView,
+        edges: updatedEdges
+    });
+}
+
+function getThemedNetworkOptions() {
+    const css = getComputedStyle(document.body);
+
+    return {
+        interaction: {
+            navigationButtons: false,
+            keyboard: false
+        },
+        physics: {
+            enabled: true,
+            barnesHut: {
+                springConstant: 0.05,
+                centralGravity: 0.4
+            }
+        },
+        layout: {
+            hierarchical: {
+                enabled: false
+            }
+        },
+        edges: {
+            width: 3,
+            selectionWidth: w => w * 2,
+            length: 150,
+            color: {
+                color: css.getPropertyValue('--edge-color-default').trim(),
+                highlight: css.getPropertyValue('--edge-color-highlight').trim(),
+                hover: css.getPropertyValue('--edge-color-hover').trim()
+            }
+        },
+        nodes: {
+            widthConstraint: { maximum: 200 },
+            color: {
+                background: css.getPropertyValue('--node-bg').trim(),
+                border: css.getPropertyValue('--node-border').trim(),
+                highlight: {
+                    background: css.getPropertyValue('--node-bg-highlight').trim(),
+                    border: css.getPropertyValue('--node-border-highlight').trim()
+                },
+                hover: {
+                    background: css.getPropertyValue('--node-bg-hover').trim(),
+                    border: css.getPropertyValue('--node-border-hover').trim()
+                }
+            },
+            font: {
+                color: css.getPropertyValue('--font-color').trim()
+            }
+        },
+        background: {
+            color: css.getPropertyValue('--canvas-bg').trim()
+        }
+    };
+}
+
+function getThemedTreeOptions() {
+    const css = getComputedStyle(document.body);
+
+    return {
+        layout: {
+            hierarchical: {
+                enabled: true,
+                direction: 'LR',
+                sortMethod: 'hubsize',
+            }
+        },
+        physics: {
+            enabled: true,
+            hierarchicalRepulsion: {
+                avoidOverlap: 0.5
+            }
+        },
+        edges: {
+            width: 3,
+            selectionWidth: w => w * 2,
+            length: 150,
+            color: {
+                color: css.getPropertyValue('--edge-color-default').trim(),
+                highlight: css.getPropertyValue('--edge-color-highlight').trim(),
+                hover: css.getPropertyValue('--edge-color-hover').trim(),
+            }
+        },
+        nodes: {
+            widthConstraint: { maximum: 200 },
+            color: {
+                background: css.getPropertyValue('--node-bg').trim(),
+                border: css.getPropertyValue('--node-border').trim(),
+                highlight: {
+                    background: css.getPropertyValue('--node-bg-highlight').trim(),
+                    border: css.getPropertyValue('--node-border-highlight').trim()
+                },
+                hover: {
+                    background: css.getPropertyValue('--node-bg-hover').trim(),
+                    border: css.getPropertyValue('--node-border-hover').trim()
+                }
+            },
+            font: {
+                color: css.getPropertyValue('--font-color').trim()
+            }
+        },
+        background: {
+            color: css.getPropertyValue('--canvas-bg').trim()
+        }
+    };
+}
+
+var container = document.getElementById('nodeGraph');
 var focusOptions = {
     scale: 1,
     offset: {x: 0, y: 0},
     animation: {duration: 1000,easingFunction: "easeInOutQuad"},
 };
 
-var networkData = {
-    nodes: [
-        {id:0, label: "Load a Red Alert 2 map file",    shape: "box"},
-        {id:1, label: "to see the triggers!",           shape: "box"},
-        {id:2, label: "Drag and drop also works works!",shape: "box"}
-    ],
-    edges: [
-        {from: 0,to: 1,arrows: "to", length: 250, color: '#00FF00'},
-        {from: 2,to: 1,arrows: "to", length: 250, color: '#00FF00'},
-        {from: 0,to: 2,arrows: "to;from", length: 250, color: '#FFA500'}
-
-    ]
-};
-
-var networkOptionsDefault = {
-    interaction: {
-        navigationButtons: true,
-        keyboard: true
-    },
-    physics: {
-        enabled: true,
-        barnesHut: {
-            springConstant: 0.05,
-            centralGravity: 0.4
-        },
-    },
-    layout:{
-        hierarchical:{
-            enabled: false
-        }
-    },
-    edges:{
-        width: 3,
-        selectionWidth: w => w*2,
-        length: 150
-    },
-    nodes:{
-        widthConstraint:{maximum: 200}
+// Returns the CSS custom property value for a given trigger type
+// Dynamically assigns colors depending on the active theme
+const getTriggerColor = (type) => {
+    const root = getComputedStyle(document.body);
+    switch (type) {
+        case 'enable': return root.getPropertyValue('--trigger-enable').trim();
+        case 'disable': return root.getPropertyValue('--trigger-disable').trim();
+        case 'destroy': return root.getPropertyValue('--trigger-destroy').trim();
+        case 'force': return root.getPropertyValue('--trigger-force').trim();
+        case 'link': return root.getPropertyValue('--trigger-link').trim();
+        case 'global': return root.getPropertyValue('--variable-global').trim();
+        default: return '#cccccc'; // Falls back to a neutral color if the type is unrecognized
     }
 };
+
+function createWelcomeNetworkData() {
+    return {
+        nodes: [
+            { id: 0, label: "Load a Red Alert 2 map file", shape: "box" },
+            { id: 1, label: "to see the triggers!", shape: "box" },
+            { id: 2, label: "Drag and drop also works!", shape: "box" }
+        ],
+        edges: [
+            { from: 0, to: 1, arrows: "to", length: 250, color: getTriggerColor('enable') },
+            { from: 2, to: 1, arrows: "to", length: 250, color: getTriggerColor('enable') },
+            { from: 0, to: 2, arrows: "to;from", length: 250, color: getTriggerColor('link') }
+        ]
+    };
+}
+
+var networkOptionsDefault = getThemedNetworkOptions()
+
 
 var networkOptionsTree = {
     layout:{
@@ -66,10 +222,6 @@ var networkOptionsTree = {
     }
 }
 
-// simple init
-//var nodesView = new vis.DataView(networkData);
-var network = new vis.Network(container, networkData, networkOptionsDefault);
-
 // global options for filters
 var nodeFilterOptions = {
     triggers: true,
@@ -79,30 +231,10 @@ var nodeFilterOptions = {
     hard: true
 };
 
-var nfs = document.getElementById("nodeFilterSelect");
-nfs.addEventListener("change", (e) => {
-    switch(e.target.value){
-        case "all":
-            nodeFilterOptions.triggers = true;
-            nodeFilterOptions.variables = true;
-        break;
-        case "triggers":
-            nodeFilterOptions.triggers = true;
-            nodeFilterOptions.variables = false;
-        break;
-        
-        case "variables":
-            nodeFilterOptions.triggers = false;
-            nodeFilterOptions.variables = true;
-        break;
-    }
-    nodesView.refresh();
-});
-
 // for easy normal hard check box
-document.getElementById('easyFilter').onchange = quickFilter('easy');
-document.getElementById('normalFilter').onchange = quickFilter('normal');
-document.getElementById('hardFilter').onchange = quickFilter('hard');
+document.getElementById('toggleEasy').onchange = quickFilter('easy');
+document.getElementById('toggleNormal').onchange = quickFilter('normal');
+document.getElementById('toggleHard').onchange = quickFilter('hard');
 function quickFilter(str){
     return function (e){
         nodeFilterOptions[str] = e.target.checked;
@@ -110,30 +242,26 @@ function quickFilter(str){
     };
 }
 
-
-
-
 // global physics
-var pc = document.getElementById("physicsCheck");
+var pc = document.getElementById("togglePhysics");
 pc.addEventListener("change", (e) =>{
     network.setOptions({physics:{enabled:e.target.checked}});
 });
-var sb = document.getElementById('stopBtn');
+var sb = document.getElementById('btnAbort');
 sb.addEventListener("click",(e)=>{
     network.stopSimulation();
 });
-var tree = document.getElementById('treeLayout');
-tree.addEventListener('change',(e)=>{
+var tree = document.getElementById('toggleTree');
+tree.addEventListener('change', (e) => {
+    const themedOptions = e.target.checked ? getThemedTreeOptions() : getThemedNetworkOptions();
+    network.setOptions(themedOptions);
 
-    if(e.target.checked){
-        network.setOptions(networkOptionsTree);
-    }else{
-        network.setOptions(networkOptionsDefault)
-    }
-    document.getElementById('physicsCheck').checked = true;
-
+    document.getElementById('togglePhysics').checked = true;
     network.fit();
+});
 
+document.getElementById("btnCenterView").addEventListener("click", function () {
+    network.fit();
 });
 
 
@@ -153,21 +281,17 @@ var events = [];
 var actions = [];
 
 
-
-
-
-
 //on load initialization
 window.onload = function() {
-    document.getElementById('searchBox').value = '';
-    var fileInput = document.getElementById('fileInput');
+    document.getElementById('searchMenu').value = '';
+    var mapFileInput = document.getElementById('mapFileInput');
 
-    fileInput.addEventListener('change', function(e) {
-        var file = fileInput.files[0];
+    mapFileInput.addEventListener('change', function(e) {
+        var file = mapFileInput.files[0];
 
         var reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('searchBox').value = '';
+            document.getElementById('searchMenu').value = '';
             network.destroy();
             var info = document.getElementById('info');
             info.innerHTML = 'File detected, attempting to load...';
@@ -199,23 +323,21 @@ container.ondragover = function(e){
 };
 container.ondrop = function(e) {
     
-    var fileInput = document.getElementById('fileInput');
-    fileInput.files = e.dataTransfer.files;
+    var mapFileInput = document.getElementById('mapFileInput');
+    mapFileInput.files = e.dataTransfer.files;
     const event = new Event('change');
-    fileInput.dispatchEvent(event);
+    mapFileInput.dispatchEvent(event);
     e.preventDefault();
     
 }
 
-
-
 // search filter function
 function searchFilterFunc(){
-    var input = document.getElementById('searchBox');
+    var input = document.getElementById('searchMenu');
     var filter = input.value.toLowerCase();
     var info = document.getElementById('info');
     
-    var nl = document.getElementById('nodesList')
+    var nl = document.getElementById('triggerList')
     nl = nl.getElementsByTagName('div');
     var info = document.getElementById('info');
     for(i=0;i<nl.length;i++){
@@ -271,7 +393,7 @@ function displayInfo(raw){
         d1.innerHTML += `<div class='listItem'>Difficulty:&nbsp;<span class='${easy}'>Easy</span>&nbsp;&nbsp;<span class='${normal}'>Normal</span>&nbsp;&nbsp;<span class='${hard}'>Hard</span></div>`;
         d1.innerHTML += `<div class='listItem'>Disabled:&nbsp;<span class='${disabled}'>${raw.disabled?"True":"False"}</span></div>`;
         
-        // events
+        // Events
         var d2 = document.createElement('details');
         var s2 = document.createElement('summary');
         s2.innerHTML = `Events`;
@@ -284,7 +406,7 @@ function displayInfo(raw){
             d.className = 'listItem';
             d.innerHTML += `Event ${i}: ${events[t].name}`;
             d.title = `${t}: ${events[t].description}`;
-            // check if the events type has more than 2 variables in its parameter
+            // Check if the event type has more than 2 variables in its parameter
             if(events[t].p[0] > 0){
                 d.innerHTML += ` ${raw.events[i].p[0]} ${raw.events[i].p[1]}`;
             }else{
@@ -293,7 +415,7 @@ function displayInfo(raw){
             d2.appendChild(d);
         }
 
-        //actions
+        // Actions
         var d3 = document.createElement('details');
         var s3 = document.createElement('summary');
         s3.innerHTML = `Actions`;
@@ -353,7 +475,7 @@ function generateNetwork(raw) {
     var nodes = raw.nodes;
     var edges = raw.edges;
     const nodes_index = {};
-    var L = document.getElementById('nodesList');
+    var L = document.getElementById('triggerList');
     L.innerHTML = '';
     nodesData = new vis.DataSet(nodes);
 
@@ -393,10 +515,10 @@ function generateNetwork(raw) {
         edges: edges
     };  
     
-    document.getElementById('physicsCheck').checked = true;
-    document.getElementById('treeLayout').checked = false;
+    document.getElementById('togglePhysics').checked = true;
+    document.getElementById('toggleTree').checked = false;
 
-    network = new vis.Network(container, data, networkOptionsDefault);            
+    network = new vis.Network(container, data, getThemedNetworkOptions());
     
     network.on("click", function (params) {
         if(params.nodes.length > 0){
@@ -414,7 +536,6 @@ function generateNetwork(raw) {
     });
 
     // loading progress and info display
-    
     network.on("stabilizationProgress", function (params) {
         info.innerText = "Loading: " + Math.round(params.iterations / params.total * 100) + '%\n';
         info.innerText += `Assets: \nTriggers & Variables: ${nodes.length} \nLinks: ${edges.length}`
@@ -435,11 +556,11 @@ function generateNetwork(raw) {
                 <div> ${parseWarning(raw.warning)} </div>`;
         }
         // populate node list
-        var nl = document.getElementById('nodesList');
+        var nl = document.getElementById('triggerList');
         for(var i=0;i<nodes.length;i++){
             var d = document.createElement('div');
             d.className = "listItem";
-            d.title = "id: " + nodes[i].id;
+            d.title = "Trigger ID: " + nodes[i].id;
             d.inner_id = nodes[i].id;
             d.innerHTML = nodes[i].label;
             d.addEventListener("click",function (e){
@@ -498,7 +619,6 @@ function parseINIString(data){
     });
     return value;
 }
-
 
 /**
  * 
@@ -570,7 +690,7 @@ function parseText(data){
         obj.repeat = parseInt(config.Tags[obj.tags[0]].split(',')[0]);
         obj.link = arr[1];
         if(obj.link.trim() != '<none>'){
-            edges.push({from: obj.id, to: obj.link, arrows: "to;from", color: '#FFA500'});
+            edges.push({from: obj.id, to: obj.link, arrows: "to;from", color: getTriggerColor('link')});
         }
 
         // parse objects and events
@@ -581,17 +701,13 @@ function parseText(data){
             warning.push(`Trigger ${item} has error in its events or actions`);
             console.log(error);
         }
-        
-
-        
 
         // customized nodes property
         obj.shape = "box";
         obj.mass = 2;
         if(obj.disabled){
-            obj.color = {border:'red',highlight:{border:'red'}};
+            obj.color = {border:'#ff0000',highlight:{border:'#ff0000'}};
         }
-
 
         if(unique_id.has(item)){
             warning.push(`ID ${item} duplicated!`);
@@ -599,8 +715,6 @@ function parseText(data){
             nodes.set(obj.id,obj);
             unique_id.add(obj.id)
         }
-               
-
     }
 
     for(var item in config.VariableNames){
@@ -633,10 +747,6 @@ function parseText(data){
     result = {nodes, edges, warning};
     return result;
     
-
-
-
-
     // disjoint set find representative for element
     function findRep(id){
         if(disjointTrigger[id]!=id){
@@ -646,7 +756,7 @@ function parseText(data){
             return id;
         }
     }
-    // action parsing
+    // Parse Actions
     function parseActions(str,parent_id){
         var arr = str.split(',');
         var actions = [];
@@ -661,29 +771,29 @@ function parseText(data){
             actions.push(obj);
             switch(obj.type){
                 case 12:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: "#FFFF00"});
+                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('destroy')});
                     break;
                 case 22:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: "#0000FF"});
+                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('force')});
                     break;
                 case 53:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: "#00FF00"});
+                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('enable')});
                     break;
                 case 54:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: "#FF0000"});
+                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('disable')});
                     break;
                 case 56:
-                    edges.push({from: parent_id, to: 'L' + obj.p[1], arrows: "to", color: "#00FF00", dashes: true});
+                    edges.push({from: parent_id, to: 'L' + obj.p[1], arrows: "to", color: getTriggerColor('enable'), dashes: true});
                     break;
                 case 57:
-                    edges.push({from: parent_id, to: 'L' + obj.p[1], arrows: "to", color: "#FF0000", dashes: true});
+                    edges.push({from: parent_id, to: 'L' + obj.p[1], arrows: "to", color: getTriggerColor('disable'), dashes: true});
                     break;
                 case 28:
-                    edges.push({from: parent_id, to: 'G' + obj.p[1], arrows: "to", color: "#00FF00", dashes: true});
+                    edges.push({from: parent_id, to: 'G' + obj.p[1], arrows: "to", color: getTriggerColor('enable'), dashes: true});
                     addGV(obj.p[1]);
                     break;
                 case 29:
-                    edges.push({from: parent_id, to: 'G' + obj.p[1], arrows: "to", color: "#FF0000", dashes: true});
+                    edges.push({from: parent_id, to: 'G' + obj.p[1], arrows: "to", color: getTriggerColor('disable'), dashes: true});
                     addGV(obj.p[1]);
                     break;
             }
@@ -711,20 +821,20 @@ function parseText(data){
             switch(obj.type){
                 // local variable: set
                 case 36:
-                    edges.push({from: 'L' + obj.p[0], to: parent_id, arrows: "to", color: "#00FF00", dashes: true});
+                    edges.push({from: 'L' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
                     break;
                 // local variable: set
                 case 37:
-                    edges.push({from: 'L' + obj.p[0], to: parent_id, arrows: "to", color: "#FF0000", dashes: true});
+                    edges.push({from: 'L' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
                     break;
                 // global variable: clear
                 case 27:
-                    edges.push({from: 'G' + obj.p[0], to: parent_id, arrows: "to", color: "#00FF00", dashes: true});
+                    edges.push({from: 'G' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
                     addGV(obj.p[0]);
                     break;
                 // global variable: clear
                 case 28:
-                    edges.push({from: 'G' + obj.p[0], to: parent_id, arrows: "to", color: "#FF0000", dashes: true});
+                    edges.push({from: 'G' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
                     addGV(obj.p[0]);
                     break;
             }
@@ -734,23 +844,24 @@ function parseText(data){
     }
 
     // global variable helper function
-    function addGV(num){
-        if(!unique_id.has('G'+num)){
+    function addGV(num) {
+        if (!unique_id.has('G' + num)) {
+            const localColor = getTriggerColor('global'); // uses --variable-global or --variable-local
             nodes.set(
-                'G'+num,
+                'G' + num,
                 {
-                    id: 'G'+num,
+                    id: 'G' + num,
                     label: `Global Variable ${num}`,
                     shape: "triangle",
                     mass: 4,
                     neighbour: new Set(),
                     color: {
-                        border: '#FF00FF',
-                        highlight: {border: '#FF00FF'}
+                        border: localColor,
+                        highlight: { border: localColor }
                     }
                 }
             );
-            unique_id.add('G'+num)
+            unique_id.add('G' + num);
         }
     }
 }
@@ -771,11 +882,8 @@ function bind_coll(){
         
     }
 }
-/**
- * 
- * @param {String} str, waypoint represented in alphabet 
- * @returns {Number}
- */
+
+// Convert alphabetic waypoint values to numbers
 function wp(str){
     const alp = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     var r = 0;
@@ -783,6 +891,8 @@ function wp(str){
         
         r = r*26 + alp.indexOf(str[i]) + 1;
     }
-    
     return (r - 1);
 }
+
+window.createWelcomeNetworkData = createWelcomeNetworkData;
+window.getThemedNetworkOptions = getThemedNetworkOptions;

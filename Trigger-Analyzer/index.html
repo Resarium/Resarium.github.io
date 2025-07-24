@@ -1,128 +1,638 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-
+    <meta charset="UTF-8">
+    <title>Trigger Analyzer</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" rel="stylesheet">
     <style type="text/css">
-        
-        #mynetwork {
-            float:left;
-            width: 68%;
-            height: 100%;
-            border: 1px solid lightgray;
-        }
-        #info {
-            float:left;
-            margin: 1px 0px 0px 5px;
-            width: 30%;
-            height: 45%;
-            border: 1px solid lightgrey;
-            overflow: auto;
-            font-family:Consolas, monospace;
-        }
-        #nodesList {
-            float:left;
-            margin: 1px 0px 0px 5px;
-            width: 30%;
-            height: 49%;
-            border: 1px solid lightgrey;
-            overflow: auto;
-            font-family:Consolas, monospace;
-        }
-        
-        #searchBox {
-            margin: 1px 0px 0px 5px;
-            float: left;
-            width: 30%;
-            height: 5%;
-            border: 1px solid lightgrey;
-            font-family:Consolas, monospace, 16px;
-        }
+	
+html, body, .main, .content {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
 
-        .listItem {
-            
-            padding: 2px 0px 2px 5px;
-            font-family:Consolas, monospace;
+/* Color List */
+:root {
+    --bg-dark: #212121;
+    --bg-light: #f0f0f0;
+    --color-dark: #ccc;
+    --color-light: #222;
+    --color-accent: #45a5ff;
+    --color-easy: #17CB49;
+    --color-normal: #FFEE22;
+    --color-hard: #F74141;
+    --color-physics: #00ffff;
+    --border-dark: #333;
+    --border-light: #ccc;
+	
+    --input-bg-dark: #2d2d2d;
+    --input-bg-light: #fff;
+    --input-border-dark: #444;
+    --input-border-light: #aaa;
 
-        }
-        .listItem:hover{
-            background-color: lightgrey;
-        }
+	--searchbox-dark: #2f4b4e;
+	--searchbox-light: #bae3e8;
+	--searchbox-dark-hover: #3f6469;
+	--searchbox-light-hover: #afd6db;
 
+	--trigger-enable: #17CB49;
+	--trigger-disable: #f74141;
+	--trigger-destroy: #FFEE22;
+	--trigger-force: #168FFF;
+	--trigger-link: #FF9F2D;
+	--variable-global: #FF00FF;
 
-        .green {
-            color: rgb(0, 212, 0);
-            font-weight: bold;
-        }
-        .yellow {
-            color:goldenrod;
-            font-weight: bold;
-        }
-        .red {
-            color: red;
-            text-decoration: line-through;
-            font-weight: bold;
-        }
-        summary{
-            background-color: #777777;
-            color: white;
-            cursor: pointer;
-            padding: 5px 0px 5px 5px;
-            width: 100%;
-            border: none;
-            text-align: left;
-            font-size: 15px;
-            user-select: none;
-            margin-top: 2px;
-        }
-        summary:hover {
-            background-color: #555555;
-        }
-        details[open] > summary {
-            background-color: #666666;
-        }
-        .main {
-            width: 99vw;
-            height: 95vh;
-        }
-        
+    --edge-color-default: #888888;
+    --edge-color-highlight: #ffffff;
+    --edge-color-hover: #ffffff;
 
+    --node-bg: #274b6d;
+    --node-border: #73c0f8;
+    --node-bg-highlight: #376e9b;
+    --node-border-highlight: #00d4ff;
+    --node-bg-hover: #1e3a56;
+    --node-border-hover: #66ccff;
+
+    --font-color: #dddddd;
+    --canvas-bg: #1e1e1e;
+}
+
+/* Interface */
+body {
+    background: var(--bg-dark);
+    color: var(--color-dark);
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+body.light-mode {
+    background: var(--bg-light);
+    color: var(--color-light);
+    --trigger-enable: #129e36;
+    --trigger-disable: #d12f2f;
+    --trigger-destroy: #d1ba15;
+    --trigger-force: #1c6fdb;
+    --trigger-link: #e67e22;
+    --variable-global: #FF00FF;
+
+    --edge-color-default: #aaaaaa;
+    --edge-color-highlight: #000000;
+    --edge-color-hover: #222222;
+    
+    --node-bg: #bdddff;
+    --node-border: #4ca6ff;
+    --node-bg-highlight: #eaf4ff;
+    --node-border-highlight: #1c8adb;
+    --node-bg-hover: #c2dcf7;
+    --node-border-hover: #1177cc;
+    
+    --font-color: #222222;
+    --canvas-bg: #f0f0f0;
+}
+
+body.light-mode #mapFileName {
+    color: var(--color-light);
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+}
+.content {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* Panels */
+#nodeGraph {
+    width: 70%;
+    height: 100%;
+    border: 1px solid lightgray;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 30%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#info, #triggerList, #searchMenu {
+    border: 1px solid lightgray;
+}
+#info {
+    height: 360px;
+    flex-shrink: 0;
+    overflow: auto;
+	padding-left: 2px;
+    border-left: none;
+    border-right: none;
+}
+#searchMenu {
+    height: 36px;
+    padding: 5px 8px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+	background: var(--searchbox-dark);
+    color: var(--color-dark);
+    border: 1px solid var(--border-light);
+    border-left: none;
+    border-right: none;
+}
+#searchMenu::placeholder {
+    color: var(--color-dark);
+}
+
+body.light-mode #searchMenu::placeholder {
+    color: var(--color-light);
+}
+#triggerList {
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+    line-height: 1.4;
+    font-size: 14px;
+	overflow: auto;
+    border-left: none;
+    border-right: none;
+	border-bottom: none;
+}
+
+.list-placeholder {
+    all: unset;
+    display: block;
+    color: #888;
+    font-style: italic;
+    padding-left: 5px;
+    pointer-events: none;
+}
+
+/* User Interface */
+.interface {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    height: 40px;
+    padding: 4px 8px;
+}
+body.light-mode .interface {
+    background: #eee;
+    border-bottom: 1px solid var(--border-light);
+}
+.interface label,
+.interface button,
+.interface select,
+.interface input[type="file"] {
+    font-family: inherit;
+}
+.interface span,
+.interface label,
+.filter-toggle {
+    color: #ddd;
+    cursor: pointer;
+    user-select: none;
+}
+body.light-mode .interface label {
+    color: var(--color-light);
+}
+.interface input[type="checkbox"] {
+    accent-color: var(--color-physics);
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.interface select,
+.interface input[type="file"] {
+    background: var(--input-bg-dark);
+    color: #eee;
+    border: 1px solid var(--input-border-dark);
+    border-radius: 4px;
+    padding: 3px 6px;
+}
+body.light-mode .interface select,
+body.light-mode .interface input[type="file"] {
+    background: var(--input-bg-light);
+    color: var(--color-light);
+    border-color: var(--input-border-light);
+}
+
+button, .icon-btn, .upload-btn, .filter-toggle {
+    background: var(--input-bg-dark);
+    color: #eee;
+    border: 1px solid var(--input-border-dark);
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+button:hover, .icon-btn:hover, .upload-btn:hover, .filter-toggle:hover {
+    background: var(--input-border-dark);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+body.light-mode button,
+body.light-mode .icon-btn,
+body.light-mode .upload-btn,
+body.light-mode .filter-toggle {
+    background: var(--input-bg-light);
+    color: #000;
+    border-color: #bbb;
+}
+body.light-mode button:hover,
+body.light-mode .icon-btn:hover,
+body.light-mode .upload-btn:hover,
+body.light-mode .filter-toggle:hover {
+    background: var(--input-border-dark);
+    color: #72bcfe;
+    border-color: #72bcfe;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    margin: 4px;
+    padding: 0;
+    box-sizing: border-box;
+}
+.icon-btn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+#btnAbort.icon-btn:hover {
+    background: #4d0000;
+    color: #ff0000;
+    border-color: #ff0000;
+}
+
+/* Toggle Feature */
+.toggle-btn { display: none; }
+.filter-toggle {
+    display: inline-block;
+    padding: 6px 10px;
+    margin: 0 4px;
+}
+#toggleEasy:checked + .filter-toggle {
+    background: var(--color-easy);
+    color: #000;
+    border-color: #00d000;
+}
+#toggleNormal:checked + .filter-toggle {
+    background: var(--color-normal);
+    color: #000;
+    border-color: #ffd700;
+}
+#toggleHard:checked + .filter-toggle {
+    background: var(--color-hard);
+    color: #000;
+    border-color: #ff0000;
+}
+#togglePhysics:checked + .filter-toggle {
+    background: var(--color-physics);
+    color: #000;
+    border-color: var(--color-physics);
+}
+
+#toggleEasy:not(:checked) + .filter-toggle:hover {
+    background: #004d00;
+    color: #00d000;
+    border-color: #004d00;
+}
+#toggleNormal:not(:checked) + .filter-toggle:hover {
+    background: #665200;
+    color: #ffd700;
+    border-color: #665200;
+}
+#toggleHard:not(:checked) + .filter-toggle:hover {
+    background: #4d0000;
+    color: #ff0000;
+    border-color: #4d0000;
+}
+
+.upload-btn i { margin: 0; }
+
+/* Utils and Light Mode */
+#searchMenu:hover {
+    background: var(--searchbox-dark-hover);
+    color: var(--color-dark);
+    border-color: var(--color-dark);
+}
+body.light-mode #info {
+    border-left: none;
+    border-right: none;
+}
+body.light-mode #triggerList {
+    border-left: none;
+    border-right: none;
+	border-bottom: none;
+}
+body.light-mode #nodeGraph {
+    border-color: var(--border-light);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+body.light-mode #searchMenu {
+    background: var(--searchbox-light);
+    color: var(--color-light);
+    border: 1px solid lightgray;
+    border-left: none;
+    border-right: none;
+}
+body.light-mode #searchMenu:hover {
+    background: var(--searchbox-light-hover);
+    color: #000;
+    border-color: #888;
+}
+
+.listItem {
+    padding: 2px 0 2px 5px;
+    margin: 0;
+    display: block;
+}
+.listItem:hover {
+    background: #2a2a2a;
+    color: var(--color-dark);
+    cursor: pointer;
+}
+
+body.light-mode .listItem {
+    color: var(--color-light);
+}
+
+body.light-mode .listItem:hover {
+    background: #d5d5d5;
+    color: var(--color-light);
+    cursor: pointer;
+}
+
+.green { color: rgb(0, 212, 0); font-weight: bold; }
+.yellow { color: goldenrod; font-weight: bold; }
+.red { color: red; text-decoration: line-through; font-weight: bold; }
+
+.resizer {
+    width: 5px;
+    cursor: col-resize;
+    background: var(--input-border-light);
+    transition: background 0.2s;
+}
+.resizer:hover {
+    background: #888;
+}
+
+.horizontal-resizer {
+    height: 5px;
+    background: var(--input-border-light);
+    cursor: row-resize;
+}
+.horizontal-resizer:hover {
+    background: #888;
+}
+
+summary {
+    background: #777;
+    color: white;
+    cursor: pointer;
+    padding: 5px 0 5px 5px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    user-select: none;
+    margin-top: 2px;
+}
+summary:hover { background: #555; }
+details[open] > summary { background: #666; }
     </style>
 </head>
+
+
 <body>
-<div>
-    <input type="file" id="fileInput" accept=".map,.yrm,.mpr" autocomplete="off">
 
-
-    <label>
-        Filter:
-        <select id="nodeFilterSelect" autocomplete="off">
-            <option value="all"> All </option>
-            <option value="triggers"> Triggers </option>
-            <option value="variables"> Variables </option>
-        </select>
-    </label>
-
-   
-    <input type="checkbox" id="easyFilter" checked autocomplete="off" > Easy
-    <input type="checkbox" id="normalFilter" checked autocomplete="off"> Normal
-    <input type="checkbox" id="hardFilter" checked autocomplete="off"> Hard
-
-
-
-    <span style="margin-left:20px;">Physics:</span>    
-    
-    <input type="checkbox" id="physicsCheck" name="physics" value="physics" checked autocomplete="off">Physics Enabled
-    <button id='stopBtn'> Stop!</button>
-    <input type="checkbox" id="treeLayout" name="tree" value="tree" autocomplete="off" title="Caution! Complex network can crash your browser tab">Tree Layout
-
-</div>
+<!-- Final version of the Upload button and filters in index.html -->
 <div class="main">
-<div id="mynetwork"></div>
-<div id="info">Welcome to the trigger analyzer. <br> <br> To start, choose a Red Alert 2 map file.</div>
-<input type="text" id='searchBox' placeholder="Search By Trigger Name or ID" oninput="searchFilterFunc()" autocomplete="off">
-<div id="nodesList">List of triggers and Variables will be listed here.</div>
+<div class="interface">
+    <label for="mapFileInput" class="icon-btn" title="Upload">
+        <i data-lucide="file-up"></i>
+    </label>
+    <input type="file" id="mapFileInput" accept=".map,.yrm,.mpr" autocomplete="off" style="display: none;">
+
+    <span id="mapFileName">Upload a map file here</span>
+
+    <input type="checkbox" id="toggleEasy" class="toggle-btn" checked autocomplete="off">
+    <label for="toggleEasy" class="filter-toggle">Easy</label>
+
+    <input type="checkbox" id="toggleNormal" class="toggle-btn" checked autocomplete="off">
+    <label for="toggleNormal" class="filter-toggle">Normal</label>
+
+    <input type="checkbox" id="toggleHard" class="toggle-btn" checked autocomplete="off">
+    <label for="toggleHard" class="filter-toggle">Hard</label>
+
+    <input type="checkbox" id="togglePhysics" class="toggle-btn" checked autocomplete="off">
+    <label for="togglePhysics" class="filter-toggle">Physics</label>
+
+    <input type="checkbox" id="toggleTree" class="toggle-btn" autocomplete="off"
+           title="Caution! Complex networks can crash your browser tab">
+    <label for="toggleTree" class="filter-toggle">Tree Layout</label>
+
+    <button id="btnCenterView" class="icon-btn" title="Center View">
+        <i data-lucide="locate-fixed"></i>
+    </button>
+
+    <button id="btnAbort" class="icon-btn" title="Abort Loading">
+        <i data-lucide="power-off"></i>
+    </button>
+	
+    <button id="toggleTheme" class="icon-btn" title="Toggle Light Mode">
+        <i id="themeIcon" data-lucide="sun"></i>
+    </button>
+
 </div>
 
-<script src='main.js'></script>
+<div class="content">
+        <div id="nodeGraph"></div>
+		<div class="resizer" id="dragHandle"></div>
+        <div class="right-panel">
+            <div id="info">
+                Welcome to the trigger analyzer!<br><br>
+                Start by uploading a Red Alert 2 compatible *.map, *.yrm, or *.mpr format map file.
+            </div>
+			<div class="horizontal-resizer" id="infoResizer"></div>
+            <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID"
+                oninput="searchFilterFunc()" autocomplete="off">
+            <div id="triggerList">
+                <div class="list-placeholder">Triggers and variables will be listed here.</div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+    const mapFileInput = document.getElementById('mapFileInput');
+    const mapFileName = document.getElementById('mapFileName');
+    const toggleTheme = document.getElementById('toggleTheme');
+
+    // 1. Restore saved theme from localStorage
+    const savedTheme = localStorage.getItem('theme');
+    const isLight = savedTheme === 'light';
+
+    if (isLight) {
+        document.body.classList.add('light-mode');
+        toggleTheme.innerHTML = `<i data-lucide="moon"></i>`;
+        toggleTheme.setAttribute('title', 'Toggle Dark Mode');
+    } else {
+        toggleTheme.innerHTML = `<i data-lucide="sun"></i>`;
+        toggleTheme.setAttribute('title', 'Toggle Light Mode');
+    }
+    lucide.createIcons();
+
+    // 2. Toggle button logic
+    toggleTheme.addEventListener('click', function () {
+        const isNowLight = document.body.classList.toggle('light-mode');
+        
+        // Save to localStorage
+        localStorage.setItem('theme', isNowLight ? 'light' : 'dark');
+
+        // Update button icon and tooltip
+        toggleTheme.innerHTML = `<i data-lucide="${isNowLight ? 'moon' : 'sun'}"></i>`;
+        toggleTheme.setAttribute('title', isNowLight ? 'Toggle Dark Mode' : 'Toggle Light Mode');
+
+        lucide.createIcons();
+
+        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
+            network.setOptions(getThemedNetworkOptions());
+        }
+
+        if (typeof regenerateEdges === 'function') {
+            regenerateEdges();
+        }
+    });
+
+    mapFileInput.addEventListener('change', function () {
+        if (mapFileInput.files.length > 0) {
+            mapFileName.textContent = `Uploaded ${mapFileInput.files[0].name}`;
+        }
+    });
+	
+    if (typeof vis !== 'undefined' && typeof createWelcomeNetworkData === 'function' && typeof getThemedNetworkOptions === 'function') {
+        const container = document.getElementById('nodeGraph');
+        const data = createWelcomeNetworkData();
+        const options = getThemedNetworkOptions();
+        window.network = new vis.Network(container, data, options);
+    }
+});
+
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Node Graph resize bar
+    const resizer = document.getElementById('dragHandle');
+    const nodeGraph = document.getElementById('nodeGraph');
+    const rightPanel = document.querySelector('.right-panel');
+
+    let isDragging = false;
+
+    resizer.addEventListener('mousedown', function (e) {
+        isDragging = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        if (!isDragging) return;
+
+        const container = document.querySelector('.content');
+        const totalWidth = container.getBoundingClientRect().width;
+        let newLeftWidth = e.clientX - container.getBoundingClientRect().left;
+
+        // Limit sizes
+        const minLeft = 200;
+        const maxLeft = totalWidth - 200;
+        newLeftWidth = Math.max(minLeft, Math.min(newLeftWidth, maxLeft));
+
+        const leftPercent = (newLeftWidth / totalWidth) * 100;
+        const rightPercent = 100 - leftPercent;
+
+        nodeGraph.style.width = `${leftPercent}%`;
+        rightPanel.style.width = `${rightPercent}%`;
+    });
+
+    document.addEventListener('mouseup', function () {
+        if (isDragging) {
+            isDragging = false;
+            document.body.style.cursor = '';
+        }
+    });
+});
+
+// Trigger Info resize bar
+const infoBox = document.getElementById('info');
+const triggerList = document.getElementById('triggerList');
+const infoResizer = document.getElementById('infoResizer');
+const rightPanel = document.querySelector('.right-panel');
+
+let isDraggingInfo = false;
+
+infoResizer.addEventListener('mousedown', function (e) {
+    isDraggingInfo = true;
+    document.body.style.cursor = 'row-resize';
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', function (e) {
+    if (!isDraggingInfo) return;
+
+    const panelRect = rightPanel.getBoundingClientRect();
+    const totalHeight = panelRect.height;
+
+    const topOffset = panelRect.top;
+    const mouseY = e.clientY;
+
+    const newInfoHeight = mouseY - topOffset;
+
+    const minInfoHeight = 100;
+    const maxInfoHeight = totalHeight - 100;
+    const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
+
+    infoBox.style.height = `${clampedHeight}px`;
+
+    const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
+    triggerList.style.height = `${newTriggerHeight}px`;
+});
+
+document.addEventListener('mouseup', function () {
+    if (isDraggingInfo) {
+        isDraggingInfo = false;
+        document.body.style.cursor = '';
+    }
+});
+
+</script>
+
+<!-- Continue with main script -->
+<script src="main.js"></script>
+
+<!-- Init Lucide Icons -->
+<script>
+    lucide.createIcons();
+</script>
+
 </body>
 </html>
