@@ -466,16 +466,20 @@ details[open] > summary { background: #666; }
         <div id="nodeGraph"></div>
 		<div class="resizer" id="dragHandle"></div>
         <div class="right-panel">
-            <div id="info">
-                Welcome to the trigger analyzer!<br><br>
-                Start by uploading a Red Alert 2 compatible *.map, *.yrm, or *.mpr format map file.
-            </div>
-			<div class="horizontal-resizer" id="infoResizer"></div>
-            <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID"
-                oninput="searchFilterFunc()" autocomplete="off">
-            <div id="triggerList">
-                <div class="list-placeholder">Triggers and variables will be listed here.</div>
-            </div>
+	    <div id="upper-right-panel">
+                <div id="info">
+                    Welcome to the trigger analyzer!<br><br>
+                    Start by uploading a Red Alert 2 compatible *.map, *.yrm, or *.mpr format map file.
+                </div>
+	    </div>
+	    <div class="horizontal-resizer" id="infoResizer"></div>
+	    <div id="lower-right-panel">
+	        <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID"
+	        oninput="searchFilterFunc()" autocomplete="off">
+	        <div id="triggerList">
+	            <div class="list-placeholder">Triggers and variables will be listed here.</div>
+	        </div>
+	    </div>
         </div>
     </div>
 </div>
