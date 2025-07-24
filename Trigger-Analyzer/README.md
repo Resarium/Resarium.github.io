@@ -1,15 +1,13 @@
 # Trigger-Analyzer
 
+Originally created by [WhensonZWS](https://github.com/whensonZWS), the [Trigger-Analyzer](https://resarium.github.io/Trigger-Analyzer/) is a visualization tool for maps from the *Command & Conquer* series (e.g., *Tiberian Sun*, *Red Alert 2*, etc.).
 
-[Trigger-Analyzer](https://whensonzws.github.io/Trigger-Analyzer/) is a visualization tool for maps found in Command and Conquer 2 series of games (Tiberium Sun, Red Alert 2 etc.). \
-It visualize triggers found in the map in a network graph, showing how the triggers are related. 
+It visualizes map triggers as a network graph, showing how different triggers are connected and interact with each other.
 ![Preview](./analyzer-demo.png)
 
-The tool is hosted on [github pages](https://whensonzws.github.io/Trigger-Analyzer/), the tool doesn't utilize web-server, so you can save the webpage for offline uses.
+The tool is hosted on [GitHub Pages](https://resarium.github.io/Trigger-Analyzer/) and does not rely on a web server, so it can be saved and used offline.
 
-The detailed information about different type of triggers is stored in `fadata.ini`, with its data converted to the json file `fadata.json` by `ini_parse.js`.\
-The `fadata.ini` is extracted from [Mental Omega](https://mentalomega.com) 3.3.5. The Red Alert 2 modpack utilize additional trigger types added by [Ares 3.0](https://ares-developers.github.io/Ares-docs/index.html)
+Trigger data is defined in `fadata.ini`, which is converted to JSON format (`fadata.json`) using the `ini_parse.js` script.
+The `fadata.ini` file is extracted from version 3.3.6 of the [Mental Omega](https://mentalomega.com) mod, which adds additional trigger types via [Ares 3.0](https://ares-developers.github.io/Ares-docs/index.html).
 
-The graph library used is the Network from [vis.js](https://visjs.github.io/vis-network/docs/network/)
-
-
+The graph is rendered using the [vis.js Network](https://visjs.github.io/vis-network/docs/network/) visualization library.
