@@ -106,9 +106,6 @@ function getThemedNetworkOptions() {
             font: {
                 color: css.getPropertyValue('--font-color').trim()
             }
-        },
-        background: {
-            color: css.getPropertyValue('--canvas-bg').trim()
         }
     };
 }
