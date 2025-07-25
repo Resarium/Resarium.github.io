@@ -1,4 +1,68 @@
 function regenerateEdges() {
+    // verify raw when regenerating edges
+    if (typeof raw === 'undefined') {
+        return;
+    }
+    // modify the raw with the new values
+    // this is very ugly because instead I should try to get existing one from index
+    // not to mention i bet there is an easier way to do this
+    if (localStorage.getItem('theme') == 'light') {
+        for (var i = 0; i < raw.edges.length; i++) { 
+            if (raw.edges[i].color === '#17CB49') {
+	        raw.edges[i].color = '#129e36';
+	    }
+            else if (raw.edges[i].color === '#f74141') {
+	        raw.edges[i].color = '#d12f2f';
+	    }
+            else if (raw.edges[i].color === '#FFEE22') {
+	        raw.edges[i].color = '#d1ba15';
+	    }
+	    else if (raw.edges[i].color === '#168FFF') {
+	        raw.edges[i].color = '#1c6fdb';
+	    }
+            else if (raw.edges[i].color === '#FF9F2D') {
+	        raw.edges[i].color = '#e67e22';
+	    }
+	}
+	for (var i = 0; i < raw.nodes.length; i++) {
+	    if (raw.nodes[i].shape === 'triangle') {
+		raw.nodes[i].color.background = '#FFB2FF';
+                raw.nodes[i].color.border = '#990099';
+		raw.nodes[i].color.highlight.border = '#990099'
+	    }
+	}
+    }
+    if (localStorage.getItem('theme') == 'dark') {
+        for (var i = 0; i < raw.edges.length; i++) { 
+            if (raw.edges[i].color === '#129e36') {
+	        raw.edges[i].color = '#17CB49';
+	    }
+            else if (raw.edges[i].color === '#d12f2f') {
+	        raw.edges[i].color = '#f74141';
+	    }
+            else if (raw.edges[i].color === '#d1ba15') {
+	        raw.edges[i].color = '#FFEE22';
+	    }
+	    else if (raw.edges[i].color === '#1c6fdb') {
+	        raw.edges[i].color = '#168FFF';
+	    }
+            else if (raw.edges[i].color === '#e67e22') {
+	        raw.edges[i].color = '#FF9F2D';
+	    }
+	}
+	for (var i = 0; i < raw.nodes.length; i++) {
+	    if (raw.nodes[i].shape === 'triangle') {
+		raw.nodes[i].color.background = '#CC33CC';
+                raw.nodes[i].color.border = '#FF00FF';
+		raw.nodes[i].color.highlight.border = '#FF00FF'
+	    }
+	}
+    }
+	
+    // generate everything with the new values
+    generateNetwork(raw);
+    
+    /*
     if (!nodesView) return;
 
     const updatedEdges = [];
@@ -57,6 +121,7 @@ function regenerateEdges() {
         nodes: nodesView,
         edges: updatedEdges
     });
+    */
 }
 
 function getThemedNetworkOptions() {
@@ -182,6 +247,7 @@ const getTriggerColor = (type) => {
         default: return '#cccccc'; // Falls back to a neutral color if the type is unrecognized
     }
 };
+
 
 function createWelcomeNetworkData() {
     return {
