@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function () {
         //    regenerateEdges();
         //}
     });
-
+    /*
     regenerateEdgesButton.addEventListener('click', function () {
         if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
             network.setOptions(getThemedNetworkOptions());
@@ -534,7 +534,8 @@ document.addEventListener('DOMContentLoaded', function () {
             regenerateEdges();
         }
     });
-
+    */
+	
     mapFileInput.addEventListener('change', function () {
         if (mapFileInput.files.length > 0) {
             mapFileName.textContent = `Uploaded ${mapFileInput.files[0].name}`;
