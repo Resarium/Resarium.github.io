@@ -544,12 +544,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <script>
+// adding rightpanel constant here
+const rightPanel = document.querySelector('.right-panel');
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // Node Graph resize bar
     const resizer = document.getElementById('dragHandle');
     const nodeGraph = document.getElementById('nodeGraph');
-    const rightPanel = document.querySelector('.right-panel');
 
     let isDragging = false;
 
@@ -584,46 +586,47 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.style.cursor = '';
         }
     });
-
-    // Trigger Info resize bar
-    const infoBox = document.getElementById('info');
-    const triggerList = document.getElementById('triggerList');
-    const infoResizer = document.getElementById('infoResizer');
-
-    let isDraggingInfo = false;
-
-    infoResizer.addEventListener('mousedown', function (e) {
-        isDraggingInfo = true;
-        document.body.style.cursor = 'row-resize';
-        // e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', function (e) {
-        if (!isDraggingInfo) return;
-
-        const panelRect = rightPanel.getBoundingClientRect();
-        const totalHeight = panelRect.height;
-
-        const topOffset = panelRect.top;
-        const mouseY = e.clientY;
-        const newInfoHeight = mouseY - topOffset;
-        const minInfoHeight = 100;
-        const maxInfoHeight = totalHeight - 100;
-        const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
-
-        infoBox.style.height = `${clampedHeight}px`;
-
-        const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
-        triggerList.style.height = `${newTriggerHeight}px`;
-    });
-
-    document.addEventListener('mouseup', function () {
-        if (isDraggingInfo) {
-            isDraggingInfo = false;
-            document.body.style.cursor = '';
-        }
-    });
 });
+	
+// Trigger Info resize bar
+const infoBox = document.getElementById('info');
+const triggerList = document.getElementById('triggerList');
+const infoResizer = document.getElementById('infoResizer');
+
+let isDraggingInfo = false;
+
+infoResizer.addEventListener('mousedown', function (e) {
+    isDraggingInfo = true;
+    document.body.style.cursor = 'row-resize';
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', function (e) {
+    if (!isDraggingInfo) return;
+
+    const panelRect = rightPanel.getBoundingClientRect();
+    const totalHeight = panelRect.height;
+
+    const topOffset = panelRect.top;
+    const mouseY = e.clientY;
+    const newInfoHeight = mouseY - topOffset;
+    const minInfoHeight = 100;
+    const maxInfoHeight = totalHeight - 100;
+    const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
+
+    infoBox.style.height = `${clampedHeight}px`;
+
+    const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
+    triggerList.style.height = `${newTriggerHeight}px`;
+});
+
+document.addEventListener('mouseup', function () {
+    if (isDraggingInfo) {
+        isDraggingInfo = false;
+        document.body.style.cursor = '';
+    }
+});
+
 </script>
 
 <!-- Continue with main script -->
