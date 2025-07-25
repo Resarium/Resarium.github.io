@@ -130,13 +130,13 @@ body.light-mode #mapFileName {
     border: 1px solid lightgray;
     height: 100%;
     width: 100%;
-    overflow: auto;	
 }
 #info {
     height: 360px;
     flex-shrink: 0;
     border-left: none;
     border-right: none;
+    overflow: scroll;
 }
 #searchMenu {
     height: 36px;
@@ -147,6 +147,7 @@ body.light-mode #mapFileName {
     border: 1px solid var(--border-light);
     border-left: none;
     border-right: none;
+    overflow: auto;
 }
 #searchMenu::placeholder {
     color: var(--color-dark);
@@ -160,6 +161,7 @@ body.light-mode #searchMenu::placeholder {
     text-indent: 0;
     line-height: 1.4;
     font-size: 14px;
+    overflow: auto;
 }
 
 .list-placeholder {
@@ -513,9 +515,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         lucide.createIcons();
 
-        //if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
-        //    network.setOptions(getThemedNetworkOptions());
-        //}
+        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
+            network.setOptions(getThemedNetworkOptions());
+        }
         //if (typeof regenerateEdges === 'function') {
         //    regenerateEdges();
         //}
