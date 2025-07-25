@@ -436,6 +436,7 @@ function displayInfo(raw){
         var d1 = document.createElement('details');
         var s1 = document.createElement('summary');
         s1.innerHTML = 'Basic Info';
+	s1.style.width = '100%';
         d1.appendChild(s1);
         d1.open = true;
         const tags = raw.tags.join(',&nbsp')
@@ -460,6 +461,7 @@ function displayInfo(raw){
         var d2 = document.createElement('details');
         var s2 = document.createElement('summary');
         s2.innerHTML = `Events`;
+	s2.style.width = '100%';
         d2.appendChild(s2);
         d2.open = true;
 
@@ -482,6 +484,7 @@ function displayInfo(raw){
         var d3 = document.createElement('details');
         var s3 = document.createElement('summary');
         s3.innerHTML = `Actions`;
+	s2.style.width = '100%';
         d3.appendChild(s3);
         d3.open = true;
         for(var i=0;i<raw.actions.length;i++){
