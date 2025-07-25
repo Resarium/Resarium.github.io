@@ -136,7 +136,8 @@ body.light-mode #mapFileName {
     flex-shrink: 0;
     border-left: none;
     border-right: none;
-    overflow: scroll;
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+    overflow-y: scroll; /* Add vertical scrollbar */
 }
 #searchMenu {
     height: 36px;
