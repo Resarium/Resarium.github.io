@@ -26,6 +26,7 @@ function regenerateEdges() {
 	}
 	for (var i = 0; i < raw.nodes.length; i++) {
 	    if (raw.nodes[i].shape === 'triangle') {
+		raw.nodes[i].color.background = '#FFB2FF';
                 raw.nodes[i].color.border = '#990099';
 		raw.nodes[i].color.highlight.border = '#990099'
 	    }
@@ -51,6 +52,7 @@ function regenerateEdges() {
 	}
 	for (var i = 0; i < raw.nodes.length; i++) {
 	    if (raw.nodes[i].shape === 'triangle') {
+		raw.nodes[i].color.background = '#CC33CC';
                 raw.nodes[i].color.border = '#FF00FF';
 		raw.nodes[i].color.highlight.border = '#FF00FF'
 	    }
