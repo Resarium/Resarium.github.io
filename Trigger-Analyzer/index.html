@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
         //triggerList.style.height = `${newTriggerHeight}px`;
 
 
-	const upPercent = (clampedHeight / totalWidth) * 100;
+	const upPercent = (clampedHeight / newInfoHeight) * 100;
         const downPercent = 100 - upPercent;
 	infoBox.style.height = `${upPercent}%`;
         triggerList.style.height = `${downPercent}%`;
