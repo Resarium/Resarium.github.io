@@ -619,6 +619,7 @@ document.addEventListener('mousemove', function (e) {
 
     const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
     triggerList.style.height = `${newTriggerHeight}px`;
+    infoResizer.body.style.height = '5px';
 });
 
 document.addEventListener('mouseup', function () {
