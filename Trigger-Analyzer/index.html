@@ -546,7 +546,6 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
-
     // Node Graph resize bar
     const resizer = document.getElementById('dragHandle');
     const nodeGraph = document.getElementById('nodeGraph');
@@ -597,7 +596,8 @@ document.addEventListener('DOMContentLoaded', function () {
            const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
            infoBox.style.height = `${clampedHeight}px`;
            triggerList.style.height = `${newTriggerHeight}px`;
-	{
+	}
+	else return
     });
 
     document.addEventListener('mouseup', function () {
