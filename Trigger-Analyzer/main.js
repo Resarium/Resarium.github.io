@@ -1,4 +1,6 @@
 function regenerateEdges() {
+    generateNetwork(raw);
+    /*
     if (!nodesView) return;
 
     const updatedEdges = [];
@@ -57,6 +59,7 @@ function regenerateEdges() {
         nodes: nodesView,
         edges: updatedEdges
     });
+    */
 }
 
 function getThemedNetworkOptions() {
