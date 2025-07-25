@@ -457,7 +457,7 @@ details[open] > summary { background: #666; }
         <i id="themeIcon" data-lucide="sun"></i>
     </button>
 
-    <button id="regenerateEdgesButton" class="icon-btn" title="Regenerate Edges">
+    <button id="regenerateEdgesButton" class="icon-btn" title="Regenerate Edges - EXPERIMENTAL">
         <i data-lucide="refresh-ccw-dot"></i>
     </button>
 </div>
@@ -513,9 +513,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         lucide.createIcons();
 
-        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
-            network.setOptions(getThemedNetworkOptions());
-        }
+        //if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
+        //    network.setOptions(getThemedNetworkOptions());
+        //}
 
         //if (typeof regenerateEdges === 'function') {
         //    regenerateEdges();
