@@ -580,14 +580,6 @@ document.addEventListener('DOMContentLoaded', function () {
         rightPanel.style.width = `${rightPercent}%`;
     });
 
-    //document.addEventListener('mouseup', function () {
-    //    if (isDragging) {
-    //       isDragging = false;
-    //        document.body.style.cursor = '';
-    //    }
-    //});
-
-	
     // Trigger Info resize bar
     const infoBox = document.getElementById('info');
     const triggerList = document.getElementById('triggerList');
@@ -624,6 +616,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('mouseup', function () {
         if (isDraggingInfo) {
             isDraggingInfo = false;
+            document.body.style.cursor = '';
+        }
+        else if (isDragging) {
+            isDragging = false;
             document.body.style.cursor = '';
         }
     });
