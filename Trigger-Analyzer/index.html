@@ -604,10 +604,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	    const minUp = 100;
             const maxUp = totalHeight - 100;
 	    newUpHeight = Math.max(minUp, Math.min(newUpHeight, maxUp));
-            const upPercent = (newLeftWidth / totalHeight) * 100;
+            const upPercent = (newUpHeight / totalHeight) * 100;
             const downPercent = 100 - upPercent;
-            infoBox.style.height = `${leftPercent}%`;
-            triggerList.style.height = `${rightPercent}%`;
+            infoBox.style.height = `${upPercent}%`;
+            triggerList.style.height = `${downPercent}%`;
 	}
 	else return
     });
