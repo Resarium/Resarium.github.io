@@ -560,6 +560,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const upper_right_panel = document.getElementById('upper-right-panel');
     const lower_right_panel = document.getElementById('lower-right-panel');
+    const search_menu = document.getElementById('searchMenu')
 
     let isDragging = false;
     let isDraggingInfo = false;
@@ -613,6 +614,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const downPercent = 100 - upPercent;
             upper_right_panel.style.height = `${upPercent}%`;
 	    infoBox.style.height = '100%';
+	    search_menu = '100%';
             lower_right_panel.style.height = `${downPercent}%`;
 	}
 	else return
