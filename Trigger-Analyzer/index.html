@@ -33,17 +33,17 @@ html, body, .main, .content {
     --input-border-dark: #444;
     --input-border-light: #aaa;
 
-	--searchbox-dark: #2f4b4e;
-	--searchbox-light: #bae3e8;
-	--searchbox-dark-hover: #3f6469;
-	--searchbox-light-hover: #afd6db;
+    --searchbox-dark: #2f4b4e;
+    --searchbox-light: #bae3e8;
+    --searchbox-dark-hover: #3f6469;
+    --searchbox-light-hover: #afd6db;
 
-	--trigger-enable: #17CB49;
-	--trigger-disable: #f74141;
-	--trigger-destroy: #FFEE22;
-	--trigger-force: #168FFF;
-	--trigger-link: #FF9F2D;
-	--variable-global: #FF00FF;
+    --trigger-enable: #17CB49;
+    --trigger-disable: #f74141;
+    --trigger-destroy: #FFEE22;
+    --trigger-force: #168FFF;
+    --trigger-link: #FF9F2D;
+    --variable-global: #FF00FF;
 
     --edge-color-default: #888888;
     --edge-color-highlight: #ffffff;
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const upPercent = (newUpHeight / totalHeight) * 100;
             const downPercent = 100 - upPercent;
             infoBox.style.height = `${upPercent}%`;
-            search_menu.style.height = `${downPercent}%`;
+            triggerList.style.height = `${downPercent}%`;
 	}
 	else return
     });
