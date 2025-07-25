@@ -604,18 +604,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const minInfoHeight = 100;
         const maxInfoHeight = totalHeight - 100;
         const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
+        const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
 
-        //infoBox.style.height = `${clampedHeight}px`;
-
-        //const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
-	//const newTriggerHeight = totalHeight - clampedHeight - document.getElementById('searchMenu').offsetHeight;
-        //triggerList.style.height = `${newTriggerHeight}px`;
-
-
-	const upPercent = (clampedHeight / newInfoHeight) * 100;
-        const downPercent = 100 - upPercent;
-	infoBox.style.height = `${upPercent}%`;
-        triggerList.style.height = `${downPercent}%`;
+	infoBox.style.height = `${clampedHeight}%`;
+        triggerList.style.height = `${newTriggerHeight}%`;
     });
 
     document.addEventListener('mouseup', function () {
