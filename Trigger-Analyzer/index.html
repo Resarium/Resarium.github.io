@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const upPercent = (newUpHeight / totalHeight) * 100;
             const downPercent = 100 - upPercent;
             upper_right_panel.style.height = `${upPercent}%`;
-	    infoBox.style.height = upper_right_panel.style.height;
+	    infoBox.style.height = '100%';
             lower_right_panel.style.height = `${downPercent}%`;
 	}
 	else return
