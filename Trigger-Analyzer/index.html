@@ -595,7 +595,7 @@ document.addEventListener('DOMContentLoaded', function () {
     infoResizer.addEventListener('mousedown', function (e) {
         isDraggingInfo = true;
         document.body.style.cursor = 'row-resize';
-        e.preventDefault();
+        // e.preventDefault();
     });
 
     document.addEventListener('mousemove', function (e) {
@@ -613,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         infoBox.style.height = `${clampedHeight}px`;
 
-        const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight + 5 - document.getElementById('searchMenu').offsetHeight;
+        const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
         triggerList.style.height = `${newTriggerHeight}px`;
     });
 
