@@ -4,6 +4,8 @@ function regenerateEdges() {
         return;
     }
     // modify the raw with the new values
+    // this is very ugly because instead I should try to get existing one from index
+    // not to mention i bet there is an easier way to do this
     if (localStorage.getItem('theme') == 'light') {
         for (var i = 0; i < raw.edges.length; i++) { 
             if (raw.edges[i].color === '#17CB49') {
@@ -21,7 +23,12 @@ function regenerateEdges() {
             else if (raw.edges[i].color === '#FF9F2D') {
 	        raw.edges[i].color = '#e67e22';
 	    }
-	    else return;
+	}
+	for (var i = 0; i < raw.nodes.length; i++) {
+	    if (raw.nodes[i].shape === 'triangle') {
+                raw.nodes[i].color.border = '#990099';
+		raw.nodes[i].color.highlight.border = '#990099'
+	    }
 	}
     }
     if (localStorage.getItem('theme') == 'dark') {
@@ -41,7 +48,12 @@ function regenerateEdges() {
             else if (raw.edges[i].color === '#e67e22') {
 	        raw.edges[i].color = '#FF9F2D';
 	    }
-	    else return;
+	}
+	for (var i = 0; i < raw.nodes.length; i++) {
+	    if (raw.nodes[i].shape === 'triangle') {
+                raw.nodes[i].color.border = '#FF00FF';
+		raw.nodes[i].color.highlight.border = '#FF00FF'
+	    }
 	}
     }
 	
