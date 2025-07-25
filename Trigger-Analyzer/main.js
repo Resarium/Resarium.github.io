@@ -1,10 +1,53 @@
 function regenerateEdges() {
+    // verify raw when regenerating edges
     if (typeof raw === 'undefined') {
         return;
     }
-    else {
-        generateNetwork(raw);
+    // modify the raw with the new values
+    if (localStorage.getItem('theme') == 'light') {
+        for (var i = 0; i < raw.edges.length; i++) { 
+            if (raw.edges[i].color === '#17CB49') {
+	        raw.edges[i].color = '#129e36';
+	    }
+            else if (raw.edges[i].color === '#f74141') {
+	        raw.edges[i].color = '#d12f2f';
+	    }
+            else if (raw.edges[i].color === '#FFEE22') {
+	        raw.edges[i].color = '#d1ba15';
+	    }
+	    else if (raw.edges[i].color === '#168FFF') {
+	        raw.edges[i].color = '#1c6fdb';
+	    }
+            else if (raw.edges[i].color === '#FF9F2D') {
+	        raw.edges[i].color = '#e67e22';
+	    }
+	    else return;
+	}
     }
+    if (localStorage.getItem('theme') == 'dark') {
+        for (var i = 0; i < raw.edges.length; i++) { 
+            if (raw.edges[i].color === '#129e36') {
+	        raw.edges[i].color = '#17CB49';
+	    }
+            else if (raw.edges[i].color === '#d12f2f') {
+	        raw.edges[i].color = '#f74141';
+	    }
+            else if (raw.edges[i].color === '#d1ba15') {
+	        raw.edges[i].color = '#FFEE22';
+	    }
+	    else if (raw.edges[i].color === '#1c6fdb') {
+	        raw.edges[i].color = '#168FFF';
+	    }
+            else if (raw.edges[i].color === '#e67e22') {
+	        raw.edges[i].color = '#FF9F2D';
+	    }
+	    else return;
+	}
+    }
+	
+    // generate everything with the new values
+    generateNetwork(raw);
+    
     /*
     if (!nodesView) return;
 
@@ -190,6 +233,7 @@ const getTriggerColor = (type) => {
         default: return '#cccccc'; // Falls back to a neutral color if the type is unrecognized
     }
 };
+
 
 function createWelcomeNetworkData() {
     return {
