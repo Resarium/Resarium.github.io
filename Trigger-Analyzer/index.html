@@ -598,6 +598,7 @@ let isDraggingInfo = false;
 infoResizer.addEventListener('mousedown', function (e) {
     isDraggingInfo = true;
     document.body.style.cursor = 'row-resize';
+    document.body.style.height = 5px;	
     e.preventDefault();
 });
 
