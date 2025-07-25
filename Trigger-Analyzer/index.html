@@ -130,11 +130,11 @@ body.light-mode #mapFileName {
     border: 1px solid lightgray;
     height: 100%;
     width: 100%;
+    overflow: auto;	
 }
 #info {
     height: 360px;
     flex-shrink: 0;
-    overflow: auto;
     border-left: none;
     border-right: none;
 }
@@ -160,10 +160,6 @@ body.light-mode #searchMenu::placeholder {
     text-indent: 0;
     line-height: 1.4;
     font-size: 14px;
-    overflow: auto;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
 }
 
 .list-placeholder {
@@ -460,30 +456,24 @@ details[open] > summary { background: #666; }
     <button id="toggleTheme" class="icon-btn" title="Toggle Light Mode">
         <i id="themeIcon" data-lucide="sun"></i>
     </button>
-
 </div>
 
 <div class="content">
-        <div id="nodeGraph"></div>
-		<div class="resizer" id="dragHandle"></div>
-        <div class="right-panel">
-	    <div id="upper-right-panel">
-                <div id="info">
-                    Welcome to the trigger analyzer!<br><br>
-                    Start by uploading a Red Alert 2 compatible *.map, *.yrm, or *.mpr format map file.
-                </div>
-	    </div>
-	    <div class="horizontal-resizer" id="infoResizer"></div>
-	    <div id="lower-right-panel">
-	        <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID"
-	        oninput="searchFilterFunc()" autocomplete="off">
-	        <div id="triggerList">
-	            <div class="list-placeholder">Triggers and variables will be listed here.</div>
-	        </div>
-	    </div>
+    <div id="nodeGraph"></div>
+    <div class="resizer" id="dragHandle"></div>
+    <div class="right-panel">
+        <div id="info">
+            Welcome to the trigger analyzer!<br><br>
+            Start by uploading a Red Alert 2 compatible *.map, *.yrm, or *.mpr format map file.
+        </div>
+	<div class="horizontal-resizer" id="infoResizer"></div>
+        <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID" oninput="searchFilterFunc()" autocomplete="off">
+        <div id="triggerList">
+            <div class="list-placeholder">Triggers and variables will be listed here.</div>
         </div>
     </div>
 </div>
+	
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -556,9 +546,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const infoBox = document.getElementById('info');
     const triggerList = document.getElementById('triggerList');
     const infoResizer = document.getElementById('infoResizer');
-
-    const upper_right_panel = document.getElementById('upper-right-panel');
-    const lower_right_panel = document.getElementById('lower-right-panel');
     const search_menu = document.getElementById('searchMenu')
 
     let isDragging = false;
@@ -591,18 +578,6 @@ document.addEventListener('DOMContentLoaded', function () {
             rightPanel.style.width = `${rightPercent}%`;
 	}
 	else if (isDraggingInfo) {
-            //const panelRect = rightPanel.getBoundingClientRect();
-            //const totalHeight = panelRect.height;    
-            //const topOffset = panelRect.top;
-            //const newInfoHeight = e.clientY - topOffset;
-            //const minInfoHeight = 100;
-            //const maxInfoHeight = totalHeight - 100;
-            //const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
-            //const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
-            //infoBox.style.height = `${clampedHeight}px`;
-            //triggerList.style.height = `${newTriggerHeight}px`;
-
-	    // bugging
             const totalHeight = rightPanel.getBoundingClientRect().height;
 	    let newUpHeight = e.clientY - rightPanel.getBoundingClientRect().top;
 	    // limit sizes
@@ -611,10 +586,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	    newUpHeight = Math.max(minUp, Math.min(newUpHeight, maxUp));
             const upPercent = (newUpHeight / totalHeight) * 100;
             const downPercent = 100 - upPercent;
-            upper_right_panel.style.height = `${upPercent}%`;
-	    infoBox.style.height = '100%';
-	    search_menu.style.width = '100%';
-            lower_right_panel.style.height = `${downPercent}%`;
+            infoBox.style.height = `${upPercent}%`;
+            search_menu.style.height = `${downPercent}%`;
 	}
 	else return
     });
