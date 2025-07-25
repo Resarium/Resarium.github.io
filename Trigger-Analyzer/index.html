@@ -556,6 +556,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const triggerList = document.getElementById('triggerList');
     const infoResizer = document.getElementById('infoResizer');
 
+    const upper_right_panel = document.getElementById('upper-right-panel');
+    const lower_right_panel = document.getElementById('lower-right-panel');
+
     let isDragging = false;
     let isDraggingInfo = false;
 
@@ -606,8 +609,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	    newUpHeight = Math.max(minUp, Math.min(newUpHeight, maxUp));
             const upPercent = (newUpHeight / totalHeight) * 100;
             const downPercent = 100 - upPercent;
-            infoBox.style.height = `${upPercent}%`;
-            triggerList.style.height = `${downPercent}%`;
+            upper_right_panel.style.height = `${upPercent}%`;
+            lower_right_panel.style.height = `${downPercent}%`;
 	}
 	else return
     });
