@@ -598,19 +598,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const panelRect = rightPanel.getBoundingClientRect();
         const totalHeight = panelRect.height;
-
+	    
         const topOffset = panelRect.top;
-        const mouseY = e.clientY;
-        const newInfoHeight = mouseY - topOffset;
+        const newInfoHeight = e.clientY - topOffset;
         const minInfoHeight = 100;
         const maxInfoHeight = totalHeight - 100;
         const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
 
         infoBox.style.height = `${clampedHeight}px`;
 
-        const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
+        //const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
+	const newTriggerHeight = totalHeight - clampedHeight - document.getElementById('searchMenu').offsetHeight;
         triggerList.style.height = `${newTriggerHeight}px`;
-        infoResizer.style.height = '5px';
     });
 
     document.addEventListener('mouseup', function () {
