@@ -605,11 +605,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const maxInfoHeight = totalHeight - 100;
         const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
 
-        infoBox.style.height = `${clampedHeight}px`;
+        //infoBox.style.height = `${clampedHeight}px`;
 
         //const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
-	const newTriggerHeight = totalHeight - clampedHeight - document.getElementById('searchMenu').offsetHeight;
-        triggerList.style.height = `${newTriggerHeight}px`;
+	//const newTriggerHeight = totalHeight - clampedHeight - document.getElementById('searchMenu').offsetHeight;
+        //triggerList.style.height = `${newTriggerHeight}px`;
+
+
+	const upPercent = (clampedHeight / totalWidth) * 100;
+        const downPercent = 100 - upPercent;
+	infoBox.style.height = `${upPercent}%`;
+        triggerList.style.height = `${downPercent}%`;
     });
 
     document.addEventListener('mouseup', function () {
