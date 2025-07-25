@@ -544,49 +544,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <script>
-// adding rightpanel constant here
-const rightPanel = document.querySelector('.right-panel');
 
 document.addEventListener('DOMContentLoaded', function () {
 
     // Node Graph resize bar
     const resizer = document.getElementById('dragHandle');
     const nodeGraph = document.getElementById('nodeGraph');
-
-    let isDragging = false;
-
-    resizer.addEventListener('mousedown', function (e) {
-        isDragging = true;
-        document.body.style.cursor = 'col-resize';
-        e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', function (e) {
-        if (!isDragging) return;
-
-        const container = document.querySelector('.content');
-        const totalWidth = container.getBoundingClientRect().width;
-        let newLeftWidth = e.clientX - container.getBoundingClientRect().left;
-
-        // Limit sizes
-        const minLeft = 200;
-        const maxLeft = totalWidth - 200;
-        newLeftWidth = Math.max(minLeft, Math.min(newLeftWidth, maxLeft));
-
-        const leftPercent = (newLeftWidth / totalWidth) * 100;
-        const rightPercent = 100 - leftPercent;
-
-        nodeGraph.style.width = `${leftPercent}%`;
-        rightPanel.style.width = `${rightPercent}%`;
-    });
+    const rightPanel = document.querySelector('.right-panel');
 
     // Trigger Info resize bar
     const infoBox = document.getElementById('info');
     const triggerList = document.getElementById('triggerList');
     const infoResizer = document.getElementById('infoResizer');
 
+    let isDragging = false;
     let isDraggingInfo = false;
 
+    resizer.addEventListener('mousedown', function (e) {
+        isDragging = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+    
     infoResizer.addEventListener('mousedown', function (e) {
         isDraggingInfo = true;
         document.body.style.cursor = 'row-resize';
@@ -594,20 +573,31 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.addEventListener('mousemove', function (e) {
-        if (!isDraggingInfo) return;
-
-        const panelRect = rightPanel.getBoundingClientRect();
-        const totalHeight = panelRect.height;
-	    
-        const topOffset = panelRect.top;
-        const newInfoHeight = e.clientY - topOffset;
-        const minInfoHeight = 100;
-        const maxInfoHeight = totalHeight - 100;
-        const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
-        const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
-
-	infoBox.style.height = `${clampedHeight}px`;
-        triggerList.style.height = `${newTriggerHeight}px`;
+        if (isDragging) {
+           const container = document.querySelector('.content');
+           const totalWidth = container.getBoundingClientRect().width;
+           let newLeftWidth = e.clientX - container.getBoundingClientRect().left;
+           // Limit sizes
+           const minLeft = 200;
+           const maxLeft = totalWidth - 200;
+           newLeftWidth = Math.max(minLeft, Math.min(newLeftWidth, maxLeft));
+           const leftPercent = (newLeftWidth / totalWidth) * 100;
+           const rightPercent = 100 - leftPercent;
+           nodeGraph.style.width = `${leftPercent}%`;
+           rightPanel.style.width = `${rightPercent}%`;
+	}
+	else if (isDraggingInfo) {
+           const panelRect = rightPanel.getBoundingClientRect();
+           const totalHeight = panelRect.height;    
+           const topOffset = panelRect.top;
+           const newInfoHeight = e.clientY - topOffset;
+           const minInfoHeight = 100;
+           const maxInfoHeight = totalHeight - 100;
+           const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
+           const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
+           infoBox.style.height = `${clampedHeight}px`;
+           triggerList.style.height = `${newTriggerHeight}px`;
+	{
     });
 
     document.addEventListener('mouseup', function () {
