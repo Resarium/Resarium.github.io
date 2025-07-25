@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	    // bugging
             const totalHeight = rightPanel.getBoundingClientRect().height;
-	    let newUpHeight = e.clientY - container.getBoundingClientRect().top;
+	    let newUpHeight = e.clientY - rightPanel.getBoundingClientRect().top;
 	    // limit sizes
 	    const minUp = 100;
             const maxUp = totalHeight - 100;
