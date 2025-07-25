@@ -513,13 +513,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         lucide.createIcons();
 
-        //if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
-        //    network.setOptions(getThemedNetworkOptions());
-        //}
-
-        //if (typeof regenerateEdges === 'function') {
-        //    regenerateEdges();
-        //}
+        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
+            network.setOptions(getThemedNetworkOptions());
+        }
+        if (typeof regenerateEdges === 'function') {
+            regenerateEdges();
+        }
     });
 
     regenerateEdgesButton.addEventListener('click', function () {
