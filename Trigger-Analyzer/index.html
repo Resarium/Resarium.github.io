@@ -606,8 +606,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const clampedHeight = Math.max(minInfoHeight, Math.min(newInfoHeight, maxInfoHeight));
         const newTriggerHeight = totalHeight - clampedHeight - infoResizer.offsetHeight - document.getElementById('searchMenu').offsetHeight;
 
-	infoBox.style.height = `${clampedHeight}px%`;
-        triggerList.style.height = `${newTriggerHeight}px%`;
+	infoBox.style.height = `${clampedHeight}px`;
+        triggerList.style.height = `${newTriggerHeight}px`;
     });
 
     document.addEventListener('mouseup', function () {
