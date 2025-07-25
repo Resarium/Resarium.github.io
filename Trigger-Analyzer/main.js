@@ -1,5 +1,10 @@
 function regenerateEdges() {
-    generateNetwork(raw);
+    if (typeof raw === 'undefined') {
+        return;
+    }
+    else {
+        generateNetwork(raw);
+    }
     /*
     if (!nodesView) return;
 
