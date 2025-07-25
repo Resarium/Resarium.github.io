@@ -523,9 +523,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     regenerateEdgesButton.addEventListener('click', function () {
+        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
+            network.setOptions(getThemedNetworkOptions());
+        }
         if (typeof regenerateEdges === 'function') {
             regenerateEdges();
-	}
+        }
     });
 
     mapFileInput.addEventListener('change', function () {
