@@ -456,6 +456,10 @@ details[open] > summary { background: #666; }
     <button id="toggleTheme" class="icon-btn" title="Toggle Light Mode">
         <i id="themeIcon" data-lucide="sun"></i>
     </button>
+
+    <button id="regenerateEdges" class="icon-btn" title="Regenerate Edges">
+        <i data-lucide="refresh-ccw-dot"></i>
+    </button>
 </div>
 
 <div class="content">
@@ -480,6 +484,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapFileInput = document.getElementById('mapFileInput');
     const mapFileName = document.getElementById('mapFileName');
     const toggleTheme = document.getElementById('toggleTheme');
+    const regenerateEdges = document.getElementById('regenerateEdges');
 
     // 1. Restore saved theme from localStorage
     const savedTheme = localStorage.getItem('theme');
@@ -515,6 +520,10 @@ document.addEventListener('DOMContentLoaded', function () {
         //if (typeof regenerateEdges === 'function') {
         //    regenerateEdges();
         //}
+    });
+
+    regenerateEdges.addEventListener('click', function () {
+        regenerateEdges();
     });
 
     mapFileInput.addEventListener('change', function () {
