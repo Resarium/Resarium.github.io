@@ -1,253 +1,980 @@
-function regenerateEdges() {
-    // verify raw when regenerating edges
-    if (typeof raw === 'undefined') {
-        return;
+// Optimized Trigger Analyzer
+class TriggerAnalyzer {
+    constructor() {
+        // Core data structures
+        this.network = null;
+        this.nodesData = null;
+        this.nodesView = null;
+        this.edgesDataSet = null;
+        this.rawData = null;
+        
+        // Cached data for performance
+        this.triggerListCache = [];
+        this.searchIndex = new Map();
+        
+        // Configuration
+        this.nodeFilterOptions = {
+            triggers: true,
+            variables: true,
+            easy: true,
+            normal: true,
+            hard: true
+        };
+        
+        // Event/Action data
+        this.events = [];
+        this.actions = [];
+        
+        // Focus options constant
+        this.focusOptions = {
+            scale: 1,
+            offset: {x: 0, y: 0},
+            animation: {duration: 1000, easingFunction: "easeInOutQuad"}
+        };
     }
-    // modify the raw with the new values
-    // this is very ugly because instead I should try to get existing one from index
-    // not to mention i bet there is an easier way to do this
-    if (localStorage.getItem('theme') == 'light') {
-        for (var i = 0; i < raw.edges.length; i++) { 
-            if (raw.edges[i].color === '#17CB49') {
-	        raw.edges[i].color = '#129e36';
-	    }
-            else if (raw.edges[i].color === '#f74141') {
-	        raw.edges[i].color = '#d12f2f';
-	    }
-            else if (raw.edges[i].color === '#FFEE22') {
-	        raw.edges[i].color = '#d1ba15';
-	    }
-	    else if (raw.edges[i].color === '#168FFF') {
-	        raw.edges[i].color = '#1c6fdb';
-	    }
-            else if (raw.edges[i].color === '#FF9F2D') {
-	        raw.edges[i].color = '#e67e22';
-	    }
-	}
-	for (var i = 0; i < raw.nodes.length; i++) {
-	    if (raw.nodes[i].shape === 'triangle') {
-		raw.nodes[i].color.background = '#FFB2FF';
-                raw.nodes[i].color.border = '#990099';
-		raw.nodes[i].color.highlight.border = '#990099'
-	    }
-	}
-    }
-    if (localStorage.getItem('theme') == 'dark') {
-        for (var i = 0; i < raw.edges.length; i++) { 
-            if (raw.edges[i].color === '#129e36') {
-	        raw.edges[i].color = '#17CB49';
-	    }
-            else if (raw.edges[i].color === '#d12f2f') {
-	        raw.edges[i].color = '#f74141';
-	    }
-            else if (raw.edges[i].color === '#d1ba15') {
-	        raw.edges[i].color = '#FFEE22';
-	    }
-	    else if (raw.edges[i].color === '#1c6fdb') {
-	        raw.edges[i].color = '#168FFF';
-	    }
-            else if (raw.edges[i].color === '#e67e22') {
-	        raw.edges[i].color = '#FF9F2D';
-	    }
-	}
-	for (var i = 0; i < raw.nodes.length; i++) {
-	    if (raw.nodes[i].shape === 'triangle') {
-		raw.nodes[i].color.background = '#CC33CC';
-                raw.nodes[i].color.border = '#FF00FF';
-		raw.nodes[i].color.highlight.border = '#FF00FF'
-	    }
-	}
-    }
-	
-    // generate everything with the new values
-    generateNetwork(raw);
     
-    /*
-    if (!nodesView) return;
-
-    const updatedEdges = [];
-
-    for (const node of nodesView.get()) {
-        const id = node.id;
-
-        if (node.house) {
-            // Triggers: rewire links
-            const raw = nodesData.get(id);
-            const actions = raw?.actions || [];
-            const eventsList = raw?.events || [];
-
-            for (const action of actions) {
-                switch (action.type) {
-                    case 12:
-                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('destroy')});
-                        break;
-                    case 22:
-                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('force')});
-                        break;
-                    case 53:
-                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('enable')});
-                        break;
-                    case 54:
-                        updatedEdges.push({from: id, to: action.p[1], arrows: "to", color: getTriggerColor('disable')});
-                        break;
-                }
+    // Load event/action definitions
+    async loadEventActionData() {
+        try {
+            const response = await fetch('./fadata.json');
+            const data = await response.json();
+            this.events = data.events;
+            this.actions = data.actions;
+        } catch (error) {
+            console.error('Failed to load event/action data:', error);
+            // Fallback to empty arrays if load fails
+            this.events = [];
+            this.actions = [];
+        }
+    }
+    
+    // Update network theme without recreating
+    updateNetworkTheme() {
+        if (!this.network || !this.nodesData) return;
+        
+        // Update network options
+        this.network.setOptions(this.getThemedNetworkOptions());
+        
+        // Update global variable node colors
+        const updatedNodes = [];
+        const isLight = document.body.classList.contains('light-mode');
+        
+        this.nodesData.forEach(node => {
+            if (node.shape === 'triangle') { // Global variables
+                updatedNodes.push({
+                    id: node.id,
+                    color: {
+                        background: isLight ? '#FFB2FF' : '#CC33CC',
+                        border: isLight ? '#990099' : '#FF00FF',
+                        highlight: {
+                            border: isLight ? '#990099' : '#FF00FF'
+                        }
+                    }
+                });
             }
-
-            for (const event of eventsList) {
-                switch (event.type) {
-                    case 36:
-                        updatedEdges.push({from: 'L' + event.p[0], to: id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
-                        break;
-                    case 37:
-                        updatedEdges.push({from: 'L' + event.p[0], to: id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
-                        break;
-                    case 27:
-                        updatedEdges.push({from: 'G' + event.p[0], to: id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
-                        break;
-                    case 28:
-                        updatedEdges.push({from: 'G' + event.p[0], to: id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
-                        break;
-                }
+        });
+        
+        if (updatedNodes.length > 0) {
+            this.nodesData.update(updatedNodes);
+        }
+        
+        // Update edge colors if needed
+        if (this.rawData && this.rawData.edges) {
+            const updatedEdges = this.rawData.edges.map(edge => ({
+                ...edge,
+                color: this.getTriggerColor(this.getEdgeColorType(edge))
+            }));
+            this.network.setData({
+                nodes: this.nodesView,
+                edges: updatedEdges
+            });
+        }
+    }
+    
+    // Helper to determine edge color type from original edge data
+    getEdgeColorType(edge) {
+        // This is a simplified version - you might need to store the color type with edges
+        if (edge.color) {
+            const colorMap = {
+                '#17CB49': 'enable',
+                '#129e36': 'enable',
+                '#f74141': 'disable',
+                '#d12f2f': 'disable',
+                '#FFEE22': 'destroy',
+                '#d1ba15': 'destroy',
+                '#168FFF': 'force',
+                '#1c6fdb': 'force',
+                '#FF9F2D': 'link',
+                '#e67e22': 'link'
+            };
+            return colorMap[edge.color] || 'default';
+        }
+        return 'default';
+    }
+    
+    // Update network theme without recreating
+    updateNetworkTheme() {
+        if (!this.network || !this.nodesData) return;
+        
+        // Update network options
+        this.network.setOptions(this.getThemedNetworkOptions());
+        
+        // Update global variable node colors
+        const updatedNodes = [];
+        const isLight = document.body.classList.contains('light-mode');
+        
+        this.nodesData.forEach(node => {
+            if (node.shape === 'triangle') { // Global variables
+                updatedNodes.push({
+                    id: node.id,
+                    color: {
+                        background: isLight ? '#FFB2FF' : '#CC33CC',
+                        border: isLight ? '#990099' : '#FF00FF',
+                        highlight: {
+                            border: isLight ? '#990099' : '#FF00FF'
+                        }
+                    }
+                });
             }
-
-            if (raw.link && raw.link.trim() !== '<none>') {
-                updatedEdges.push({from: id, to: raw.link, arrows: "to;from", color: getTriggerColor('link')});
+        });
+        
+        if (updatedNodes.length > 0) {
+            this.nodesData.update(updatedNodes);
+        }
+        
+        // Update edge colors
+        if (this.edgesDataSet) {
+            const updatedEdges = [];
+            this.edgesDataSet.forEach(edge => {
+                if (edge.colorType) {
+                    updatedEdges.push({
+                        id: edge.id,
+                        color: this.getTriggerColor(edge.colorType)
+                    });
+                }
+            });
+            if (updatedEdges.length > 0) {
+                this.edgesDataSet.update(updatedEdges);
             }
         }
     }
+    
+    // Get color based on current theme
+    getTriggerColor(type) {
+        const root = getComputedStyle(document.body);
+        const colorMap = {
+            'enable': '--trigger-enable',
+            'disable': '--trigger-disable',
+            'destroy': '--trigger-destroy',
+            'force': '--trigger-force',
+            'link': '--trigger-link',
+            'global': '--variable-global'
+        };
+        return root.getPropertyValue(colorMap[type] || '--edge-color-default').trim();
+    }
+    
+    // Network options
+    getThemedNetworkOptions() {
+        const css = getComputedStyle(document.body);
+        const isTreeMode = document.getElementById('toggleTree').checked;
+        
+        const baseOptions = {
+            interaction: {
+                navigationButtons: false,
+                keyboard: false
+            },
+            edges: {
+                width: 3,
+                selectionWidth: w => w * 2,
+                length: 150,
+                color: {
+                    color: css.getPropertyValue('--edge-color-default').trim(),
+                    highlight: css.getPropertyValue('--edge-color-highlight').trim(),
+                    hover: css.getPropertyValue('--edge-color-hover').trim()
+                }
+            },
+            nodes: {
+                widthConstraint: { maximum: 200 },
+                color: {
+                    background: css.getPropertyValue('--node-bg').trim(),
+                    border: css.getPropertyValue('--node-border').trim(),
+                    highlight: {
+                        background: css.getPropertyValue('--node-bg-highlight').trim(),
+                        border: css.getPropertyValue('--node-border-highlight').trim()
+                    },
+                    hover: {
+                        background: css.getPropertyValue('--node-bg-hover').trim(),
+                        border: css.getPropertyValue('--node-border-hover').trim()
+                    }
+                },
+                font: {
+                    color: css.getPropertyValue('--font-color').trim()
+                }
+            }
+        };
+        
+        if (isTreeMode) {
+            return {
+                ...baseOptions,
+                layout: {
+                    hierarchical: {
+                        enabled: true,
+                        direction: 'LR',
+                        sortMethod: 'hubsize'
+                    }
+                },
+                physics: {
+                    enabled: true,
+                    hierarchicalRepulsion: {
+                        avoidOverlap: 0.5
+                    }
+                }
+            };
+        } else {
+            return {
+                ...baseOptions,
+                physics: {
+                    enabled: true,
+                    barnesHut: {
+                        springConstant: 0.05,
+                        centralGravity: 0.4
+                    }
+                },
+                layout: {
+                    hierarchical: {
+                        enabled: false
+                    }
+                }
+            };
+        }
+    }
+    
+    // Create initial welcome network
+    createWelcomeNetwork() {
+        const container = document.getElementById('nodeGraph');
+        const nodes = new vis.DataSet([
+            { id: 0, label: "Load a Red Alert 2 map file", shape: "box" },
+            { id: 1, label: "to see the triggers!", shape: "box" },
+            { id: 2, label: "Drag and drop also works!", shape: "box" }
+        ]);
+        
+        const edges = new vis.DataSet([
+            { id: 'e1', from: 0, to: 1, arrows: "to", length: 250, color: this.getTriggerColor('enable'), colorType: 'enable' },
+            { id: 'e2', from: 2, to: 1, arrows: "to", length: 250, color: this.getTriggerColor('enable'), colorType: 'enable' },
+            { id: 'e3', from: 0, to: 2, arrows: "to;from", length: 250, color: this.getTriggerColor('link'), colorType: 'link' }
+        ]);
+        
+        this.network = new vis.Network(container, {nodes, edges}, this.getThemedNetworkOptions());
+        this.nodesData = nodes;
+        this.edgesDataSet = edges;
+    }
+    
+    // Convert alphabetic waypoint to number
+    convertWaypoint(str) {
+        const alp = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let r = 0;
+        for (let i = 0; i < str.length; i++) {
+            r = r * 26 + alp.indexOf(str[i]) + 1;
+        }
+        return r - 1;
+    }
+    
+    // Parse INI format
+    parseINI(data) {
+        const regex = {
+            section: /^\s*\[\s*([^\]]*)\s*\]\s*$/,
+            param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
+            comment: /^\s*;.*$/
+        };
+        const result = {};
+        const lines = data.split(/[\r\n]+/);
+        let section = null;
+        
+        lines.forEach(line => {
+            if (regex.comment.test(line)) return;
+            
+            if (regex.param.test(line)) {
+                const match = line.match(regex.param);
+                if (section) {
+                    result[section][match[1]] = match[2];
+                } else {
+                    result[match[1]] = match[2];
+                }
+            } else if (regex.section.test(line)) {
+                const match = line.match(regex.section);
+                result[match[1]] = {};
+                section = match[1];
+            } else if (line.length === 0 && section) {
+                section = null;
+            }
+        });
+        
+        return result;
+    }
+    
+    // Parse map file
+    parseMapFile(data) {
+        const config = this.parseINI(data);
+        const nodes = new Map();
+        const edges = [];
+        const warnings = [];
+        const uniqueIds = new Set();
+        
+        // Process triggers and tags relationship
+        const disjointTrigger = {};
+        const triggerRef = {};
+        
+        // Initialize disjoint sets
+        for (const id in config.Triggers) {
+            const [house, link, name] = config.Triggers[id].split(',');
+            disjointTrigger[id] = link === '<none>' ? id : link;
+            triggerRef[id] = [];
+        }
+        
+        // Helper for disjoint set
+        const findRep = (id) => {
+            if (disjointTrigger[id] !== id) {
+                disjointTrigger[id] = findRep(disjointTrigger[id]);
+            }
+            return disjointTrigger[id];
+        };
+        
+        // Process tags
+        for (const tagId in config.Tags) {
+            const [repeat, , triggerId] = config.Tags[tagId].split(',');
+            const rep = findRep(triggerId);
+            if (!triggerRef[rep]) {
+                warnings.push(`Tag ${tagId} refers to non-existent trigger!`);
+            } else {
+                triggerRef[rep].push(tagId);
+            }
+        }
+        
+        // Process triggers
+        for (const id in config.Triggers) {
+            const [house, link, name, disabled, easy, normal, hard] = config.Triggers[id].split(',');
+            const rep = findRep(id);
+            
+            if (!triggerRef[rep].length) {
+                warnings.push(`Trigger ${id} doesn't have any tags!`);
+                continue;
+            }
+            
+            const trigger = {
+                id,
+                label: name,
+                house,
+                easy: parseInt(easy),
+                normal: parseInt(normal),
+                hard: parseInt(hard),
+                disabled: parseInt(disabled),
+                tags: triggerRef[rep],
+                repeat: parseInt(config.Tags[triggerRef[rep][0]].split(',')[0]),
+                link,
+                neighbour: new Set(),
+                shape: "box",
+                mass: 2
+            };
+            
+            if (trigger.disabled) {
+                trigger.color = { border: '#ff0000', highlight: { border: '#ff0000' } };
+            }
+            
+            // Parse events and actions
+            try {
+                trigger.events = this.parseEvents(config.Events[id], id, edges, nodes, uniqueIds);
+                trigger.actions = this.parseActions(config.Actions[id], id, edges, nodes, uniqueIds);
+            } catch (error) {
+                warnings.push(`Trigger ${id} has error in events or actions`);
+                console.error(error);
+            }
+            
+            if (link.trim() !== '<none>') {
+                edges.push({ 
+                    from: id, 
+                    to: link, 
+                    arrows: "to;from", 
+                    color: this.getTriggerColor('link'),
+                    colorType: 'link'
+                });
+            }
+            
+            if (uniqueIds.has(id)) {
+                warnings.push(`ID ${id} duplicated!`);
+            } else {
+                nodes.set(id, trigger);
+                uniqueIds.add(id);
+            }
+        }
+        
+        // Process variables
+        for (const id in config.VariableNames) {
+            const [name, initValue] = config.VariableNames[id].split(',');
+            nodes.set(`L${id}`, {
+                id: `L${id}`,
+                label: name,
+                initValue,
+                shape: "diamond",
+                mass: 4,
+                neighbour: new Set()
+            });
+        }
+        
+        // Build neighbor relationships
+        edges.forEach(edge => {
+            const fromNode = nodes.get(edge.from);
+            const toNode = nodes.get(edge.to);
+            if (fromNode && toNode) {
+                fromNode.neighbour.add(edge.to);
+                toNode.neighbour.add(edge.from);
+            }
+        });
+        
+        if (!config.Triggers) {
+            warnings.push('There are no triggers in this map!');
+        }
+        
+        return { nodes: Array.from(nodes.values()), edges, warning: warnings };
+    }
+    
+    // Parse events
+    parseEvents(str, parentId, edges, nodes, uniqueIds) {
+        if (!str) return [];
+        
+        const arr = str.split(',');
+        const events = [];
+        
+        for (let i = 1; i < arr.length; i += 3) {
+            const type = parseInt(arr[i]);
+            const flag = parseInt(arr[i + 1]);
+            const event = { type, p: [] };
+            
+            if (flag === 2) {
+                event.p = [arr[i + 2], arr[i + 3]];
+                i++;
+            } else {
+                event.p = [arr[i + 2]];
+            }
+            
+            // Handle special event types that create edges
+            switch (type) {
+                case 36: // Local variable set
+                case 37: // Local variable clear
+                    edges.push({
+                        from: `L${event.p[0]}`,
+                        to: parentId,
+                        arrows: "to",
+                        color: this.getTriggerColor(type === 36 ? 'enable' : 'disable'),
+                        dashes: true,
+                        colorType: type === 36 ? 'enable' : 'disable'
+                    });
+                    break;
+                case 27: // Global variable set
+                case 28: // Global variable clear
+                    this.addGlobalVariable(event.p[0], nodes, uniqueIds);
+                    edges.push({
+                        from: `G${event.p[0]}`,
+                        to: parentId,
+                        arrows: "to",
+                        color: this.getTriggerColor(type === 27 ? 'enable' : 'disable'),
+                        dashes: true,
+                        colorType: type === 27 ? 'enable' : 'disable'
+                    });
+                    break;
+            }
+            
+            events.push(event);
+        }
+        
+        return events;
+    }
+    
+    // Parse actions
+    parseActions(str, parentId, edges, nodes, uniqueIds) {
+        if (!str) return [];
+        
+        const arr = str.split(',');
+        const actions = [];
+        const count = parseInt(arr[0]);
+        
+        for (let i = 1; i < arr.length && actions.length < count; i += 8) {
+            const type = parseInt(arr[i]);
+            const action = { type, p: [] };
+            
+            for (let j = 1; j < 8; j++) {
+                action.p.push(arr[i + j] || '');
+            }
+            
+            // Handle special action types that create edges
+            const edgeConfig = {
+                12: { color: 'destroy', arrows: "to" },           // Destroy trigger
+                22: { color: 'force', arrows: "to" },             // Force trigger
+                53: { color: 'enable', arrows: "to" },            // Enable trigger
+                54: { color: 'disable', arrows: "to" },           // Disable trigger
+                56: { color: 'enable', arrows: "to", dashes: true, prefix: 'L' },  // Set local variable
+                57: { color: 'disable', arrows: "to", dashes: true, prefix: 'L' }, // Clear local variable
+                28: { color: 'enable', arrows: "to", dashes: true, prefix: 'G' },  // Set global variable
+                29: { color: 'disable', arrows: "to", dashes: true, prefix: 'G' }  // Clear global variable
+            };
+            
+            if (edgeConfig[type]) {
+                const config = edgeConfig[type];
+                const targetId = config.prefix ? `${config.prefix}${action.p[1]}` : action.p[1];
+                
+                if (config.prefix === 'G') {
+                    this.addGlobalVariable(action.p[1], nodes, uniqueIds);
+                }
+                
+                edges.push({
+                    from: parentId,
+                    to: targetId,
+                    arrows: config.arrows,
+                    color: this.getTriggerColor(config.color),
+                    dashes: config.dashes,
+                    colorType: config.color
+                });
+            }
+            
+            actions.push(action);
+        }
+        
+        return actions;
+    }
+    
+    // Add global variable node
+    addGlobalVariable(id, nodes, uniqueIds) {
+        const globalId = `G${id}`;
+        if (!uniqueIds.has(globalId)) {
+            const color = this.getTriggerColor('global');
+            nodes.set(globalId, {
+                id: globalId,
+                label: `Global Variable ${id}`,
+                shape: "triangle",
+                mass: 4,
+                neighbour: new Set(),
+                color: {
+                    background: document.body.classList.contains('light-mode') ? '#FFB2FF' : '#CC33CC',
+                    border: document.body.classList.contains('light-mode') ? '#990099' : '#FF00FF',
+                    highlight: {
+                        border: document.body.classList.contains('light-mode') ? '#990099' : '#FF00FF'
+                    }
+                }
+            });
+            uniqueIds.add(globalId);
+        }
+    }
+    
+    // Update info panel
+    updateInfo(content) {
+        const info = document.getElementById('info');
+        if (typeof content === 'string') {
+            info.innerHTML = content;
+        } else {
+            this.displayTriggerInfo(content);
+        }
+    }
+    
+    // Display trigger information
+    displayTriggerInfo(raw) {
+        const info = document.getElementById('info');
+        info.innerHTML = '';
+        
+        if (!raw.house) {
+            // Variable info
+            info.innerHTML = `
+                Variable<br>
+                Name: ${raw.label}<br>
+                ID: ${raw.id}<br>
+                Initial Value: ${raw.initValue || 'N/A'}`;
+            return;
+        }
+        
+        // Trigger info
+        const repeatType = raw.repeat === 0 ? 'one time OR' : 
+                          raw.repeat === 1 ? 'one time AND' : 'repeating OR';
+        
+        const createSection = (title, content, open = true) => {
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.textContent = title;
+            details.appendChild(summary);
+            details.innerHTML += content;
+            details.open = open;
+            return details;
+        };
+        
+        // Basic info
+        info.innerHTML = `
+            <div class='listItem'>Name: ${raw.label}</div>
+            <div class='listItem'>ID: ${raw.id}</div>`;
+        
+        // Basic details section
+        const basicInfo = `
+            <div class='listItem'>House: ${raw.house}</div>
+            <div class='listItem'>Repeat: ${raw.repeat} (${repeatType})</div>
+            <div class='listItem'>Tags: ${raw.tags.join(', ')}</div>
+            ${raw.link.trim() !== '<none>' ? `<div class='listItem'>Link Trigger: ${raw.link}</div>` : ''}
+            <div class='listItem'>Difficulty: 
+                <span class='${raw.easy ? 'green' : 'red'}'>Easy</span> 
+                <span class='${raw.normal ? 'green' : 'red'}'>Normal</span> 
+                <span class='${raw.hard ? 'green' : 'red'}'>Hard</span>
+            </div>
+            <div class='listItem'>Disabled: <span class='${raw.disabled ? 'red' : 'green'}'>${raw.disabled ? 'True' : 'False'}</span></div>`;
+        
+        info.appendChild(createSection('Basic Info', basicInfo));
+        
+        // Events section
+        let eventsContent = '';
+        raw.events.forEach((event, i) => {
+            const eventDef = this.events[event.type] || { name: 'Unknown', description: '' };
+            eventsContent += `<div class='listItem' title='${event.type}: ${eventDef.description}'>
+                Event ${i}: ${eventDef.name} ${event.p.join(' ')}
+            </div>`;
+        });
+        info.appendChild(createSection('Events', eventsContent));
+        
+        // Actions section
+        let actionsContent = '';
+        raw.actions.forEach((action, i) => {
+            const actionDef = this.actions[action.type] || { name: 'Unknown', description: '' };
+            let params = '';
+            for (let j = 0; j < 7; j++) {
+                if (actionDef.p && actionDef.p[j] > 0) {
+                    if (j !== 6) {
+                        params += ` ${action.p[j]}`;
+                    } else {
+                        params += ` @${this.convertWaypoint(action.p[j])}`;
+                    }
+                }
+            }
+            actionsContent += `<div class='listItem' title='${action.type}: ${actionDef.description}'>
+                Action ${i}: ${actionDef.name}${params}
+            </div>`;
+        });
+        info.appendChild(createSection('Actions', actionsContent));
+    }
+    
+    // Node filter function
+    filterNode(node) {
+        if (node.house !== undefined) {
+            // Trigger node
+            if (!this.nodeFilterOptions.triggers) {
+                // Check if it's a neighbor of a variable
+                let hasVariableNeighbor = false;
+                for (const neighborId of node.neighbour) {
+                    const neighbor = this.nodesData.get(neighborId);
+                    if (neighbor && neighbor.house === undefined) {
+                        hasVariableNeighbor = true;
+                        break;
+                    }
+                }
+                if (!hasVariableNeighbor) return false;
+            }
+            
+            return (node.easy && this.nodeFilterOptions.easy) ||
+                   (node.normal && this.nodeFilterOptions.normal) ||
+                   (node.hard && this.nodeFilterOptions.hard);
+        } else {
+            // Variable node
+            return this.nodeFilterOptions.variables;
+        }
+    }
+    
+    // Generate network visualization
+    generateNetwork() {
+        const info = document.getElementById('info');
+        const warnings = this.rawData.warning.join('<br>');
+        
+        info.innerHTML = `
+            Parse complete, generating network graph.<br>
+            ${warnings ? `<div class='yellow'>Warnings:</div><div>${warnings}</div>` : ''}`;
+        
+        // Clear trigger list
+        document.getElementById('triggerList').innerHTML = '';
+        
+        // Create data sets
+        this.nodesData = new vis.DataSet(this.rawData.nodes);
+        this.edgesDataSet = new vis.DataSet(this.rawData.edges);
+        
+        // Create filtered view
+        this.nodesView = new vis.DataView(this.nodesData, {
+            filter: (node) => this.filterNode(node)
+        });
+        
+        // Create network
+        const container = document.getElementById('nodeGraph');
+        const data = {
+            nodes: this.nodesView,
+            edges: this.edgesDataSet
+        };
+        
+        document.getElementById('togglePhysics').checked = true;
+        document.getElementById('toggleTree').checked = false;
+        
+        this.network = new vis.Network(container, data, this.getThemedNetworkOptions());
+        
+        // Setup network events
+        this.setupNetworkEvents(warnings);
+        
+        // Build trigger list for search
+        this.buildTriggerList();
+    }
+    
+    // Setup network event handlers
+    setupNetworkEvents(warningText) {
+        this.network.on("click", (params) => {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                this.updateInfo(this.nodesView.get(nodeId));
+            } else {
+                this.updateInfo(warningText || 'Click on a node to see details');
+            }
+        });
+        
+        this.network.on("doubleClick", (params) => {
+            if (params.nodes.length > 0) {
+                this.network.focus(params.nodes[0], this.focusOptions);
+            }
+        });
+        
+        this.network.on("stabilizationProgress", (params) => {
+            const progress = Math.round(params.iterations / params.total * 100);
+            this.updateInfo(`Loading: ${progress}%<br>
+                Assets:<br>
+                Triggers & Variables: ${this.rawData.nodes.length}<br>
+                Links: ${this.rawData.edges.length}
+                ${warningText ? `<br><div class='yellow'>Warnings:</div><div>${warningText}</div>` : ''}`);
+        });
+        
+        this.network.once("stabilizationIterationsDone", () => {
+            this.updateInfo(`100% Loaded.<br>
+                Assets:<br>
+                Triggers & Variables: ${this.rawData.nodes.length}<br>
+                Links: ${this.rawData.edges.length}
+                ${warningText ? `<br><div class='yellow'>Warnings:</div><div>${warningText}</div>` : ''}`);
+        });
+    }
+    
+    // Build trigger list for UI
+    buildTriggerList() {
+        const triggerList = document.getElementById('triggerList');
+        const fragment = document.createDocumentFragment();
+        
+        this.rawData.nodes.forEach(node => {
+            const item = document.createElement('div');
+            item.className = 'listItem';
+            item.title = `Trigger ID: ${node.id}`;
+            item.dataset.triggerId = node.id;
+            item.textContent = node.label;
+            
+            item.addEventListener('click', () => {
+                this.updateInfo(this.nodesData.get(node.id));
+                
+                if (this.filterNode(this.nodesData.get(node.id))) {
+                    this.network.focus(node.id, this.focusOptions);
+                    this.network.setSelection({ nodes: [node.id] });
+                }
+            });
+            
+            fragment.appendChild(item);
+        });
+        
+        triggerList.appendChild(fragment);
+    }
+}
 
-    // Re-apply the edges
-    network.setData({
-        nodes: nodesView,
-        edges: updatedEdges
+// Global instance for compatibility with existing code
+let analyzer;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize analyzer
+    analyzer = new TriggerAnalyzer();
+    analyzer.loadEventActionData();
+    
+    // Theme management
+    const toggleTheme = document.getElementById('toggleTheme');
+    const savedTheme = localStorage.getItem('theme');
+    const isLight = savedTheme === 'light';
+    
+    if (isLight) {
+        document.body.classList.add('light-mode');
+        toggleTheme.innerHTML = '<i data-lucide="moon"></i>';
+        toggleTheme.setAttribute('title', 'Toggle Dark Mode');
+    } else {
+        toggleTheme.innerHTML = '<i data-lucide="sun"></i>';
+        toggleTheme.setAttribute('title', 'Toggle Light Mode');
+    }
+    
+    // Theme toggle
+    toggleTheme.addEventListener('click', function () {
+        const isNowLight = document.body.classList.toggle('light-mode');
+        localStorage.setItem('theme', isNowLight ? 'light' : 'dark');
+        toggleTheme.innerHTML = `<i data-lucide="${isNowLight ? 'moon' : 'sun'}"></i>`;
+        toggleTheme.setAttribute('title', isNowLight ? 'Toggle Dark Mode' : 'Toggle Light Mode');
+        lucide.createIcons();
+        
+        if (analyzer.network) {
+            analyzer.updateNetworkTheme();
+        }
     });
-    */
-}
+    
+    // File handling
+    const mapFileInput = document.getElementById('mapFileInput');
+    const mapFileName = document.getElementById('mapFileName');
+    
+    mapFileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        mapFileName.textContent = `Uploaded ${file.name}`;
+        document.getElementById('searchMenu').value = '';
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (analyzer.network) analyzer.network.destroy();
+            analyzer.updateInfo('File detected, attempting to load...');
+            
+            try {
+                analyzer.rawData = analyzer.parseMapFile(e.target.result);
+                analyzer.generateNetwork();
+            } catch (error) {
+                console.error('Parse error:', error);
+                alert('Map file parse Error!');
+                analyzer.updateInfo('File loading failed.');
+            }
+        };
+        reader.onerror = error => {
+            console.error('File read error:', error);
+            analyzer.updateInfo('File reading failed.');
+        };
+        reader.readAsText(file, 'UTF-8');
+    });
+    
+    // Drag and drop
+    const container = document.getElementById('nodeGraph');
+    container.ondragover = e => e.preventDefault();
+    container.ondrop = e => {
+        mapFileInput.files = e.dataTransfer.files;
+        mapFileInput.dispatchEvent(new Event('change'));
+        e.preventDefault();
+    };
+    
+    // Filter toggles
+    ['Easy', 'Normal', 'Hard'].forEach(difficulty => {
+        document.getElementById(`toggle${difficulty}`).addEventListener('change', e => {
+            analyzer.nodeFilterOptions[difficulty.toLowerCase()] = e.target.checked;
+            if (analyzer.nodesView) analyzer.nodesView.refresh();
+        });
+    });
+    
+    // Physics toggle
+    document.getElementById('togglePhysics').addEventListener('change', e => {
+        if (analyzer.network) {
+            analyzer.network.setOptions({ physics: { enabled: e.target.checked } });
+        }
+    });
+    
+    // Abort button
+    document.getElementById('btnAbort').addEventListener('click', () => {
+        if (analyzer.network) analyzer.network.stopSimulation();
+    });
+    
+    // Tree toggle
+    document.getElementById('toggleTree').addEventListener('change', () => {
+        if (analyzer.network) {
+            analyzer.network.setOptions(analyzer.getThemedNetworkOptions());
+            document.getElementById('togglePhysics').checked = true;
+            analyzer.network.fit();
+        }
+    });
+    
+    // Center view
+    document.getElementById('btnCenterView').addEventListener('click', () => {
+        if (analyzer.network) analyzer.network.fit();
+    });
+    
+    // Search with debouncing
+    let searchTimeout;
+    document.getElementById('searchMenu').addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const filter = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#triggerList .listItem');
+            
+            if (!filter) {
+                items.forEach(item => item.style.display = '');
+                return;
+            }
+            
+            items.forEach(item => {
+                const searchText = (item.textContent + (item.dataset.triggerId || '')).toLowerCase();
+                item.style.display = searchText.includes(filter) ? '' : 'none';
+            });
+        }, 150);
+    });
+    
+    // Panel resizers
+    const resizer = document.getElementById('dragHandle');
+    const nodeGraph = document.getElementById('nodeGraph');
+    const rightPanel = document.querySelector('.right-panel');
+    const infoBox = document.getElementById('info');
+    const triggerList = document.getElementById('triggerList');
+    const infoResizer = document.getElementById('infoResizer');
+    
+    let isDragging = false;
+    let isDraggingInfo = false;
+    
+    resizer.addEventListener('mousedown', e => {
+        isDragging = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+    
+    infoResizer.addEventListener('mousedown', e => {
+        isDraggingInfo = true;
+        document.body.style.cursor = 'row-resize';
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', e => {
+        if (isDragging) {
+            const contentBox = document.querySelector('.content');
+            const totalWidth = contentBox.getBoundingClientRect().width;
+            let newLeftWidth = e.clientX - contentBox.getBoundingClientRect().left;
+            newLeftWidth = Math.max(200, Math.min(newLeftWidth, totalWidth - 200));
+            const leftPercent = (newLeftWidth / totalWidth) * 100;
+            nodeGraph.style.width = `${leftPercent}%`;
+            rightPanel.style.width = `${100 - leftPercent}%`;
+        } else if (isDraggingInfo) {
+            const totalHeight = rightPanel.getBoundingClientRect().height;
+            let newUpHeight = e.clientY - rightPanel.getBoundingClientRect().top;
+            newUpHeight = Math.max(100, Math.min(newUpHeight, totalHeight - 100));
+            const upPercent = (newUpHeight / totalHeight) * 100;
+            infoBox.style.height = `${upPercent}%`;
+            triggerList.style.height = `${100 - upPercent}%`;
+        }
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging || isDraggingInfo) {
+            isDragging = false;
+            isDraggingInfo = false;
+            document.body.style.cursor = '';
+        }
+    });
+    
+    // Create welcome network
+    analyzer.createWelcomeNetwork();
+    
+    // Initialize icons
+    lucide.createIcons();
+});
 
+// Global functions for backwards compatibility
 function getThemedNetworkOptions() {
-    const css = getComputedStyle(document.body);
-
-    return {
-        interaction: {
-            navigationButtons: false,
-            keyboard: false
-        },
-        physics: {
-            enabled: true,
-            barnesHut: {
-                springConstant: 0.05,
-                centralGravity: 0.4
-            }
-        },
-        layout: {
-            hierarchical: {
-                enabled: false
-            }
-        },
-        edges: {
-            width: 3,
-            selectionWidth: w => w * 2,
-            length: 150,
-            color: {
-                color: css.getPropertyValue('--edge-color-default').trim(),
-                highlight: css.getPropertyValue('--edge-color-highlight').trim(),
-                hover: css.getPropertyValue('--edge-color-hover').trim()
-            }
-        },
-        nodes: {
-            widthConstraint: { maximum: 200 },
-            color: {
-                background: css.getPropertyValue('--node-bg').trim(),
-                border: css.getPropertyValue('--node-border').trim(),
-                highlight: {
-                    background: css.getPropertyValue('--node-bg-highlight').trim(),
-                    border: css.getPropertyValue('--node-border-highlight').trim()
-                },
-                hover: {
-                    background: css.getPropertyValue('--node-bg-hover').trim(),
-                    border: css.getPropertyValue('--node-border-hover').trim()
-                }
-            },
-            font: {
-                color: css.getPropertyValue('--font-color').trim()
-            }
-        }
-    };
+    return analyzer ? analyzer.getThemedNetworkOptions() : {};
 }
-
-function getThemedTreeOptions() {
-    const css = getComputedStyle(document.body);
-
-    return {
-        layout: {
-            hierarchical: {
-                enabled: true,
-                direction: 'LR',
-                sortMethod: 'hubsize',
-            }
-        },
-        physics: {
-            enabled: true,
-            hierarchicalRepulsion: {
-                avoidOverlap: 0.5
-            }
-        },
-        edges: {
-            width: 3,
-            selectionWidth: w => w * 2,
-            length: 150,
-            color: {
-                color: css.getPropertyValue('--edge-color-default').trim(),
-                highlight: css.getPropertyValue('--edge-color-highlight').trim(),
-                hover: css.getPropertyValue('--edge-color-hover').trim(),
-            }
-        },
-        nodes: {
-            widthConstraint: { maximum: 200 },
-            color: {
-                background: css.getPropertyValue('--node-bg').trim(),
-                border: css.getPropertyValue('--node-border').trim(),
-                highlight: {
-                    background: css.getPropertyValue('--node-bg-highlight').trim(),
-                    border: css.getPropertyValue('--node-border-highlight').trim()
-                },
-                hover: {
-                    background: css.getPropertyValue('--node-bg-hover').trim(),
-                    border: css.getPropertyValue('--node-border-hover').trim()
-                }
-            },
-            font: {
-                color: css.getPropertyValue('--font-color').trim()
-            }
-        },
-        background: {
-            color: css.getPropertyValue('--canvas-bg').trim()
-        }
-    };
-}
-
-var container = document.getElementById('nodeGraph');
-var focusOptions = {
-    scale: 1,
-    offset: {x: 0, y: 0},
-    animation: {duration: 1000,easingFunction: "easeInOutQuad"},
-};
-
-// Returns the CSS custom property value for a given trigger type
-// Dynamically assigns colors depending on the active theme
-const getTriggerColor = (type) => {
-    const root = getComputedStyle(document.body);
-    switch (type) {
-        case 'enable': return root.getPropertyValue('--trigger-enable').trim();
-        case 'disable': return root.getPropertyValue('--trigger-disable').trim();
-        case 'destroy': return root.getPropertyValue('--trigger-destroy').trim();
-        case 'force': return root.getPropertyValue('--trigger-force').trim();
-        case 'link': return root.getPropertyValue('--trigger-link').trim();
-        case 'global': return root.getPropertyValue('--variable-global').trim();
-        default: return '#cccccc'; // Falls back to a neutral color if the type is unrecognized
-    }
-};
-
 
 function createWelcomeNetworkData() {
     return {
@@ -257,705 +984,9 @@ function createWelcomeNetworkData() {
             { id: 2, label: "Drag and drop also works!", shape: "box" }
         ],
         edges: [
-            { from: 0, to: 1, arrows: "to", length: 250, color: getTriggerColor('enable') },
-            { from: 2, to: 1, arrows: "to", length: 250, color: getTriggerColor('enable') },
-            { from: 0, to: 2, arrows: "to;from", length: 250, color: getTriggerColor('link') }
+            { from: 0, to: 1, arrows: "to", length: 250, color: analyzer ? analyzer.getTriggerColor('enable') : '#17CB49' },
+            { from: 2, to: 1, arrows: "to", length: 250, color: analyzer ? analyzer.getTriggerColor('enable') : '#17CB49' },
+            { from: 0, to: 2, arrows: "to;from", length: 250, color: analyzer ? analyzer.getTriggerColor('link') : '#FF9F2D' }
         ]
     };
 }
-
-var networkOptionsDefault = getThemedNetworkOptions()
-
-
-var networkOptionsTree = {
-    layout:{
-        hierarchical:{
-            enabled: true,
-            direction: 'LR',
-            sortMethod: 'hubsize',  // hubsize, directed
-            // directed is the natural choice for hierachy layout, however, looping confuse the graph algorithm and produce ugly graph
-            // using hubsize by default, but directed is not out of the question yet in future version
-        }
-    },
-    physics:{
-        enabled: true,
-        hierarchicalRepulsion: {
-            avoidOverlap: 0.5
-        }
-    }
-}
-
-// global options for filters
-var nodeFilterOptions = {
-    triggers: true,
-    variables: true,
-    easy: true,
-    normal: true,
-    hard: true
-};
-
-// for easy normal hard check box
-document.getElementById('toggleEasy').onchange = quickFilter('easy');
-document.getElementById('toggleNormal').onchange = quickFilter('normal');
-document.getElementById('toggleHard').onchange = quickFilter('hard');
-function quickFilter(str){
-    return function (e){
-        nodeFilterOptions[str] = e.target.checked;
-        nodesView.refresh();
-    };
-}
-
-// global physics
-var pc = document.getElementById("togglePhysics");
-pc.addEventListener("change", (e) =>{
-    network.setOptions({physics:{enabled:e.target.checked}});
-});
-var sb = document.getElementById('btnAbort');
-sb.addEventListener("click",(e)=>{
-    network.stopSimulation();
-});
-var tree = document.getElementById('toggleTree');
-tree.addEventListener('change', (e) => {
-    const themedOptions = e.target.checked ? getThemedTreeOptions() : getThemedNetworkOptions();
-    network.setOptions(themedOptions);
-
-    document.getElementById('togglePhysics').checked = true;
-    network.fit();
-});
-
-document.getElementById("btnCenterView").addEventListener("click", function () {
-    network.fit();
-});
-
-
-//async load final alert events/actions data
-var fadata = new XMLHttpRequest();
-
-fadata.onreadystatechange = function () {
-    if (this.readyState == 4 && this.status == 200) {
-        fadata = JSON.parse(fadata.responseText);
-        events = fadata.events;
-        actions = fadata.actions;
-    }
-};
-fadata.open('GET','./fadata.json',true);
-fadata.send();
-var events = [];
-var actions = [];
-
-
-//on load initialization
-window.onload = function() {
-    document.getElementById('searchMenu').value = '';
-    var mapFileInput = document.getElementById('mapFileInput');
-
-    mapFileInput.addEventListener('change', function(e) {
-        var file = mapFileInput.files[0];
-
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('searchMenu').value = '';
-            network.destroy();
-            var info = document.getElementById('info');
-            info.innerHTML = 'File detected, attempting to load...';
-            try{
-                raw = parseText(e.target.result);
-                try{
-                    generateNetwork(raw);
-                }catch(error){
-                    alert('Unable to generate network graph!');
-                    console.log(error);
-                    info.innerHTML = 'File loading failed.';
-                }
-            }catch(error){
-                alert('Map file parse Error!');
-                console.log(error);
-                info.innerHTML = 'File loading failed.';
-            } 
-        }
-        reader.readAsText(file, 'UTF-8');
-        
-        reader.onerror = error=>console.log(error);
-	});
-}
-
-
- 
-container.ondragover = function(e){
-    e.preventDefault();
-};
-container.ondrop = function(e) {
-    
-    var mapFileInput = document.getElementById('mapFileInput');
-    mapFileInput.files = e.dataTransfer.files;
-    const event = new Event('change');
-    mapFileInput.dispatchEvent(event);
-    e.preventDefault();
-    
-}
-
-// search filter function
-function searchFilterFunc(){
-    var input = document.getElementById('searchMenu');
-    var filter = input.value.toLowerCase();
-    var info = document.getElementById('info');
-    
-    var nl = document.getElementById('triggerList')
-    nl = nl.getElementsByTagName('div');
-    var info = document.getElementById('info');
-    for(i=0;i<nl.length;i++){
-        
-        if((nl[i].innerHTML + nl[i].inner_id).toLowerCase().indexOf(filter)>-1){
-            nl[i].style.display = "";
-        }else{
-            nl[i].style.display = "none";
-        }
-    }
-    
-}
-
-// receive an object and populate information box
-function displayInfo(raw){
-    var info = document.getElementById('info');
-    while(info.hasChildNodes()){
-        info.removeChild(info.childNodes[0]);
-    }
-    if(typeof(raw)=='string'){
-        info.innerHTML = raw;
-        return;
-    } 
-    // Triggers:
-    if(raw.house){
-        // ID and Label
-        var d0 = document.createElement('div');
-        d0.innerHTML = `
-            <div class='listItem'>Name:&nbsp;${raw.label}</div>
-            <div class='listItem'>ID:&nbsp;${raw.id}</div>
-            `;
-        
-        var d1 = document.createElement('details');
-        var s1 = document.createElement('summary');
-        s1.innerHTML = 'Basic Info';
-        d1.appendChild(s1);
-        d1.open = true;
-        const tags = raw.tags.join(',&nbsp')
-        repeatType = raw.repeat==0 ? 'one time OR' : raw.repeat==1 ? 'one time AND' : 'repeating OR' ;
-        d1.innerHTML +=  `
-            <div class='listItem'>House: ${raw.house}</div> 
-            <div class='listItem'>Repeat: ${raw.repeat} (${repeatType})</div>
-            <div class='listItem'>Tags: ${tags} </div>`
-        if(raw.link.trim() != '<none>'){
-            console.log(raw.link);
-            d1.innerHTML +=  `
-            <div class='listItem'>Link Trigger: ${raw.link}</div>`
-        }
-        easy = raw.easy?'green':'red';
-        normal = raw.normal?'green':'red';
-        hard = raw.hard?'green':'red';
-        disabled = raw.disabled?'red':'green';
-        d1.innerHTML += `<div class='listItem'>Difficulty:&nbsp;<span class='${easy}'>Easy</span>&nbsp;&nbsp;<span class='${normal}'>Normal</span>&nbsp;&nbsp;<span class='${hard}'>Hard</span></div>`;
-        d1.innerHTML += `<div class='listItem'>Disabled:&nbsp;<span class='${disabled}'>${raw.disabled?"True":"False"}</span></div>`;
-        
-        // Events
-        var d2 = document.createElement('details');
-        var s2 = document.createElement('summary');
-        s2.innerHTML = `Events`;
-        d2.appendChild(s2);
-        d2.open = true;
-
-        for(var i=0;i<raw.events.length;i++){
-            var t = raw.events[i].type;
-            var d = document.createElement('div');
-            d.className = 'listItem';
-            d.innerHTML += `Event ${i}: ${events[t].name}`;
-            d.title = `${t}: ${events[t].description}`;
-            // Check if the event type has more than 2 variables in its parameter
-            if(events[t].p[0] > 0){
-                d.innerHTML += ` ${raw.events[i].p[0]} ${raw.events[i].p[1]}`;
-            }else{
-                d.innerHTML += ` ${raw.events[i].p[0]}`
-            }
-            d2.appendChild(d);
-        }
-
-        // Actions
-        var d3 = document.createElement('details');
-        var s3 = document.createElement('summary');
-        s3.innerHTML = `Actions`;
-        d3.appendChild(s3);
-        d3.open = true;
-        for(var i=0;i<raw.actions.length;i++){
-            var t = raw.actions[i].type;
-            var d = document.createElement('div');
-            d.innerHTML += `Action ${i}: ${actions[t].name}`;
-            d.className = 'listItem';
-            d.title = `${t}: ${actions[t].description}`;
-            for(j=0;j<7;j++){
-                if(actions[t].p[j]>0){
-                    if(j!=6) d.innerHTML += ` ${raw.actions[i].p[j]}`;
-                    else d.innerHTML += ` @${wp(raw.actions[i].p[j])}`;
-                }
-            }
-            d3.appendChild(d);
-        }
-        info.appendChild(d0);
-        info.appendChild(d1);
-        info.appendChild(d2);
-        info.appendChild(d3);
-        /*
-        var d4 = document.createElement('details');
-        var s4 = document.createElement('summary');
-        s4.className = 'collapsible';
-        s4.innerHTML = 'Neighbouring Nodes'
-        
-        d4.appendChild(s4);
-        for(var item of raw.neighbour){
-            var d = document.createElement('div');
-            d.className = 'listItem';
-            d.innerHTML = `neighbour: ${item}`;
-            d4.appendChild(d);
-        }
-        info.appendChild(d4);*/
-        
-    }else{
-        info.innerHTML = `
-            Variable <br> 
-            Name:&nbsp;${raw.label}<br>
-            ID:&nbsp;${raw.id}<br>
-            Initial Value:&nbsp;${raw.initValue}`;
-    
-    }
-}
-
-// receive nodes/edge object and generate network
-function generateNetwork(raw) {
-    var info = document.getElementById('info');
-    info.innerHTML = `
-    Parse complete, generating network graph. <br> 
-    <div class='yellow'> Warnings: </div>
-    <div> ${parseWarning(raw.warning)} </div>`;
-    var warningText = parseWarning(raw.warning);
-    var nodes = raw.nodes;
-    var edges = raw.edges;
-    const nodes_index = {};
-    var L = document.getElementById('triggerList');
-    L.innerHTML = '';
-    nodesData = new vis.DataSet(nodes);
-
-    const nodesFilter = (node) => {
-        /**
-         * filter flow:
-         * triggers
-         *     1 check if trigger is in filter, true -> step 3, false -> step 2
-         *     2 check if it's a neighbour of variable, true -> step 3, false -> return false
-         *     3 check if any the the trigger difficulty match the filter option, true -> return true, false -> return false
-         * variables
-         *     just check if variable is in filter
-         */
-        // triggers
-        if(node.house != undefined){
-            if(!nodeFilterOptions.triggers){
-                var flag = true;
-                for(var item of node.neighbour){
-                    if(nodesData.get(item).house == undefined){
-                        flag = false;
-                        break;
-                    }
-                }
-                if(flag) return false;
-            }
-            return (node.easy && nodeFilterOptions.easy) || (node.normal && nodeFilterOptions.normal) || (node.hard && nodeFilterOptions.hard);
-        }else{
-            return nodeFilterOptions.variables;
-
-        }
-        
-    };
-    nodesView = new vis.DataView(nodesData,{filter:nodesFilter});
-   
-    var data = {
-        nodes: nodesView,
-        edges: edges
-    };  
-    
-    document.getElementById('togglePhysics').checked = true;
-    document.getElementById('toggleTree').checked = false;
-
-    network = new vis.Network(container, data, getThemedNetworkOptions());
-    
-    network.on("click", function (params) {
-        if(params.nodes.length > 0){
-            const n_id = params.nodes[0];
-            displayInfo(nodesView.get(n_id));
-        }else if(params.nodes.length == 0){
-            displayInfo(warningText);
-        }
-    });
-
-    network.on("doubleClick", function (params) {
-        if(params.nodes.length > 0){
-            network.focus(params.nodes[0],focusOptions);
-        }
-    });
-
-    // loading progress and info display
-    network.on("stabilizationProgress", function (params) {
-        info.innerText = "Loading: " + Math.round(params.iterations / params.total * 100) + '%\n';
-        info.innerText += `Assets: \nTriggers & Variables: ${nodes.length} \nLinks: ${edges.length}`
-        if(raw.warning.length > 0){
-            info.innerHTML += `
-                <br> <div class='yellow'> Warnings: (Check your map for potential error)</div>
-                <div> ${parseWarning(raw.warning)} </div>`;
-        }
-    });
-
-    network.once("stabilizationIterationsDone", function () {
-        
-        // info box
-        info.innerText = `100% Loaded. \nAssets: \nTriggers & Variables: ${nodes.length} \nLinks: ${edges.length} `;
-        if(raw.warning.length>0){
-            info.innerHTML += `
-                <br> <div class='yellow'> Warnings: (Check your map for potential error) </div>
-                <div> ${parseWarning(raw.warning)} </div>`;
-        }
-        // populate node list
-        var nl = document.getElementById('triggerList');
-        for(var i=0;i<nodes.length;i++){
-            var d = document.createElement('div');
-            d.className = "listItem";
-            d.title = "Trigger ID: " + nodes[i].id;
-            d.inner_id = nodes[i].id;
-            d.innerHTML = nodes[i].label;
-            d.addEventListener("click",function (e){
-                displayInfo(nodesData.get(this.inner_id));
-                // only focus and select when the node is in current view
-                if(nodesFilter(nodesData.get(this.inner_id))){
-                    network.focus(this.inner_id,focusOptions);
-                    network.setSelection({nodes:[this.inner_id]});
-                }
-                
-            });
-            nl.appendChild(d); 
-        }
-    });
-    
-};
-
-/**
- * @param {[]} data, the arrays of warning message
- * @return {String} an HTML string representing the warning message
- * input should be an array consist of warning messange,
- * warning information can get complex in the future, where each array element contains type of error and the detailed information for each error
- * 
-*/ 
-function parseWarning(data){
-    return data.join('<br>')
-}
-
-// code that I shamelessly copy from stack overflow
-function parseINIString(data){
-    var regex = {
-        section: /^\s*\[\s*([^\]]*)\s*\]\s*$/,
-        param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
-        comment: /^\s*;.*$/
-    };
-    var value = {};
-    var lines = data.split(/[\r\n]+/);
-    var section = null;
-    lines.forEach(function(line){
-        if(regex.comment.test(line)){
-            return;
-        }else if(regex.param.test(line)){
-            var match = line.match(regex.param);
-            if(section){
-                value[section][match[1]] = match[2];
-            }else{
-                value[match[1]] = match[2];
-            }
-        }else if(regex.section.test(line)){
-            var match = line.match(regex.section);
-            value[match[1]] = {};
-            section = match[1];
-        }else if(line.length == 0 && section){
-            section = null;
-        };
-    });
-    return value;
-}
-
-/**
- * 
- * @param {String} data, the INI text string to be parsed 
- * @returns {object} an object containing 3 arrays: nodes, edges and warnings
- */
-function parseText(data){
-    config = parseINIString(data);
-    // nodes are treated as a map for easy access, will be convert to array during output
-    var nodes = new Map();
-    var edges = [];
-    var warning = [];
-    var unique_id = new Set();
-
-    /**
-     * Relationship between Triggers and Tags is not well understood
-     * Here triggers are grouped as disjoint sets, i.e. each trigger belong to only one set.
-     * each set may have one or more tags associated with it
-     * the repeating type of a trigger will be determined by the first tags associated with its set.
-     */
-    // pre-processing
-    disjointTrigger = {};
-    triggerRef = {};
-
-    // initialize the disjoint set
-    for(var item in config.Triggers){
-        const arr = config.Triggers[item].split(',');
-        if(arr[1] == '<none>'){
-            disjointTrigger[item] = item;
-        }else{
-            disjointTrigger[item] = arr[1];
-        }
-        triggerRef[item] = [];
-    }
-    
-    // update the triggers reference using the disjoint set
-    for(var item in config.Tags){
-        const arr = config.Tags[item].split(',');
-        const rep = findRep(arr[2]);
-        if(triggerRef[rep] == undefined){
-            warning.push(`Tag ${item} refer to a none existing trigger!`);
-        }else{
-            triggerRef[rep].push(item);
-        }
-    }
-
-    // read trigger
-    for(var item in config.Triggers){
-        const arr = config.Triggers[item].split(',');
-        var obj = {};
-
-        // trigger property
-        obj.id = item;
-        obj.label = arr[2];
-        obj.house = arr[0];             
-        obj.easy = parseInt(arr[4]);
-        obj.normal = parseInt(arr[5]);
-        obj.hard = parseInt(arr[6]);
-        obj.disabled = parseInt(arr[3]);
-        obj.neighbour = new Set();
-        // check if the trigger has any associated tags
-        const rep = findRep(item);
-        if(triggerRef[rep].length == 0){
-            warning.push(`Trigger ${item} doesn't have any tags!`)
-            continue;
-        }
-        // associated the repeating type with the first tag
-        obj.tags = triggerRef[rep];
-        obj.repeat = parseInt(config.Tags[obj.tags[0]].split(',')[0]);
-        obj.link = arr[1];
-        if(obj.link.trim() != '<none>'){
-            edges.push({from: obj.id, to: obj.link, arrows: "to;from", color: getTriggerColor('link')});
-        }
-
-        // parse objects and events
-        try{
-            obj.events = parseEvents(config.Events[obj.id],obj.id);
-            obj.actions = parseActions(config.Actions[obj.id],obj.id);
-        }catch(error){
-            warning.push(`Trigger ${item} has error in its events or actions`);
-            console.log(error);
-        }
-
-        // customized nodes property
-        obj.shape = "box";
-        obj.mass = 2;
-        if(obj.disabled){
-            obj.color = {border:'#ff0000',highlight:{border:'#ff0000'}};
-        }
-
-        if(unique_id.has(item)){
-            warning.push(`ID ${item} duplicated!`);
-        }else{
-            nodes.set(obj.id,obj);
-            unique_id.add(obj.id)
-        }
-    }
-
-    for(var item in config.VariableNames){
-        var temp = config.VariableNames[item].split(',');
-        nodes.set(
-            'L'+item, 
-            {
-                id: 'L'+item,
-                label: temp[0],
-                initValue: temp[1],
-                shape:"diamond", 
-                mass: 4,
-                neighbour: new Set()
-            }
-        );
-    }
-   // pre-processing: storing neighbour in nodes
-    for(var i=0;i<edges.length;i++){
-        try{
-            nodes.get(edges[i].from).neighbour.add(edges[i].to);
-            nodes.get(edges[i].to).neighbour.add(edges[i].from);
-        }catch{
-            continue;
-        }
-    }
-    nodes = Array.from(nodes.values());
-    if(config.Triggers == undefined){
-        warning.push(`There are no triggers in this map!`);
-    }
-    result = {nodes, edges, warning};
-    return result;
-    
-    // disjoint set find representative for element
-    function findRep(id){
-        if(disjointTrigger[id]!=id){
-            disjointTrigger[id] = disjointTrigger[disjointTrigger[id]];
-            return findRep(disjointTrigger[id]);
-        }else{
-            return id;
-        }
-    }
-    // Parse Actions
-    function parseActions(str,parent_id){
-        var arr = str.split(',');
-        var actions = [];
-        const n = arr[0];
-        for(var i=1;i<arr.length;i+=8){
-            var obj = {};
-            obj.type = parseInt(arr[i]);
-            obj.p = [];
-            for(var j=1;j<8;j++){
-                obj.p.push(arr[i+j]);
-            }
-            actions.push(obj);
-            switch(obj.type){
-                case 12:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('destroy')});
-                    break;
-                case 22:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('force')});
-                    break;
-                case 53:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('enable')});
-                    break;
-                case 54:
-                    edges.push({from: parent_id, to: obj.p[1], arrows: "to", color: getTriggerColor('disable')});
-                    break;
-                case 56:
-                    edges.push({from: parent_id, to: 'L' + obj.p[1], arrows: "to", color: getTriggerColor('enable'), dashes: true});
-                    break;
-                case 57:
-                    edges.push({from: parent_id, to: 'L' + obj.p[1], arrows: "to", color: getTriggerColor('disable'), dashes: true});
-                    break;
-                case 28:
-                    edges.push({from: parent_id, to: 'G' + obj.p[1], arrows: "to", color: getTriggerColor('enable'), dashes: true});
-                    addGV(obj.p[1]);
-                    break;
-                case 29:
-                    edges.push({from: parent_id, to: 'G' + obj.p[1], arrows: "to", color: getTriggerColor('disable'), dashes: true});
-                    addGV(obj.p[1]);
-                    break;
-            }
-            // just in case there are some extra parameters left behind, break the loop before those can be parse as a different actions
-            if(actions.length == n) break;
-        }
-        return actions;
-    }
-
-    // events parsing
-    function parseEvents(str,parent_id){
-        var arr = str.split(',');
-        var events = [];
-        for(var i=1;i<arr.length;i+=3){
-            var obj = {};
-            obj.type = parseInt(arr[i]);
-            flag = parseInt(arr[i+1]);
-            
-            if(flag == 2){
-                obj.p = [arr[i+2],arr[i+3]];
-                i++;
-            }else{
-                obj.p = [arr[i+2]];
-            }
-            switch(obj.type){
-                // local variable: set
-                case 36:
-                    edges.push({from: 'L' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
-                    break;
-                // local variable: set
-                case 37:
-                    edges.push({from: 'L' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
-                    break;
-                // global variable: clear
-                case 27:
-                    edges.push({from: 'G' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('enable'), dashes: true});
-                    addGV(obj.p[0]);
-                    break;
-                // global variable: clear
-                case 28:
-                    edges.push({from: 'G' + obj.p[0], to: parent_id, arrows: "to", color: getTriggerColor('disable'), dashes: true});
-                    addGV(obj.p[0]);
-                    break;
-            }
-            events.push(obj);
-        }
-        return events;
-    }
-
-    // global variable helper function
-    function addGV(num) {
-        if (!unique_id.has('G' + num)) {
-            const localColor = getTriggerColor('global'); // uses --variable-global or --variable-local
-            nodes.set(
-                'G' + num,
-                {
-                    id: 'G' + num,
-                    label: `Global Variable ${num}`,
-                    shape: "triangle",
-                    mass: 4,
-                    neighbour: new Set(),
-                    color: {
-                        border: localColor,
-                        highlight: { border: localColor }
-                    }
-                }
-            );
-            unique_id.add('G' + num);
-        }
-    }
-}
-
-function bind_coll(){
-    var coll = document.getElementsByClassName("collapsible");
-
-    for (var i = 0; i < coll.length; i++) {
-        coll[i].addEventListener("click", function() {
-            this.classList.toggle("active");
-            var content = this.nextElementSibling;
-            if (content.style.maxHeight != '0px'){
-                content.style.maxHeight = '0px';
-            } else {
-                content.style.maxHeight = content.scrollHeight + "px";
-            }
-        });
-        
-    }
-}
-
-// Convert alphabetic waypoint values to numbers
-function wp(str){
-    const alp = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    var r = 0;
-    for(var i=0;i<str.length;i++){
-        
-        r = r*26 + alp.indexOf(str[i]) + 1;
-    }
-    return (r - 1);
-}
-
-window.createWelcomeNetworkData = createWelcomeNetworkData;
-window.getThemedNetworkOptions = getThemedNetworkOptions;
