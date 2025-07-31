@@ -460,11 +460,6 @@ details[open] > summary { background: #666; }
     <button id="toggleTheme" class="icon-btn" title="Toggle Light Mode">
         <i id="themeIcon" data-lucide="sun"></i>
     </button>
-    <!-- Nice button for regenerate edges
-    <button id="regenerateEdgesButton" class="icon-btn" title="Regenerate Edges - EXPERIMENTAL">
-        <i data-lucide="refresh-ccw-dot"></i>
-    </button>
-    -->
 </div>
 
 <div class="content">
@@ -476,7 +471,7 @@ details[open] > summary { background: #666; }
             Start by uploading a Red Alert 2 compatible *.map, *.yrm, or *.mpr format map file.
         </div>
 	<div class="horizontal-resizer" id="infoResizer"></div>
-        <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID" oninput="searchFilterFunc()" autocomplete="off">
+        <input type="text" id='searchMenu' placeholder="Search by Trigger name or ID" autocomplete="off">
         <div id="triggerList">
             <div class="list-placeholder">Triggers and variables will be listed here.</div>
         </div>
@@ -484,77 +479,6 @@ details[open] > summary { background: #666; }
 </div>
 	
 <script>
-
-document.addEventListener('DOMContentLoaded', function () {
-    const mapFileInput = document.getElementById('mapFileInput');
-    const mapFileName = document.getElementById('mapFileName');
-    const toggleTheme = document.getElementById('toggleTheme');
-    const regenerateEdgesButton = document.getElementById('regenerateEdgesButton');
-
-    // 1. Restore saved theme from localStorage
-    const savedTheme = localStorage.getItem('theme');
-    const isLight = savedTheme === 'light';
-
-    if (isLight) {
-        document.body.classList.add('light-mode');
-        toggleTheme.innerHTML = `<i data-lucide="moon"></i>`;
-        toggleTheme.setAttribute('title', 'Toggle Dark Mode');
-    } else {
-        toggleTheme.innerHTML = `<i data-lucide="sun"></i>`;
-        toggleTheme.setAttribute('title', 'Toggle Light Mode');
-    }
-    lucide.createIcons();
-
-    // 2. Toggle button logic
-    toggleTheme.addEventListener('click', function () {
-        const isNowLight = document.body.classList.toggle('light-mode');
-        
-        // Save to localStorage
-        localStorage.setItem('theme', isNowLight ? 'light' : 'dark');
-
-        // Update button icon and tooltip
-        toggleTheme.innerHTML = `<i data-lucide="${isNowLight ? 'moon' : 'sun'}"></i>`;
-        toggleTheme.setAttribute('title', isNowLight ? 'Toggle Dark Mode' : 'Toggle Light Mode');
-
-        lucide.createIcons();
-
-        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
-            network.setOptions(getThemedNetworkOptions());
-        }
-        //if (typeof regenerateEdges === 'function') {
-        //    regenerateEdges();
-        //}
-    });
-    /*
-    regenerateEdgesButton.addEventListener('click', function () {
-        if (typeof network !== 'undefined' && typeof getThemedNetworkOptions === 'function') {
-            network.setOptions(getThemedNetworkOptions());
-        }
-        if (typeof regenerateEdges === 'function') {
-            regenerateEdges();
-        }
-    });
-    */
-	
-    mapFileInput.addEventListener('change', function () {
-        if (mapFileInput.files.length > 0) {
-            mapFileName.textContent = `Uploaded ${mapFileInput.files[0].name}`;
-        }
-    });
-	
-    if (typeof vis !== 'undefined' && typeof createWelcomeNetworkData === 'function' && typeof getThemedNetworkOptions === 'function') {
-        const container = document.getElementById('nodeGraph');
-        const data = createWelcomeNetworkData();
-        const options = getThemedNetworkOptions();
-        window.network = new vis.Network(container, data, options);
-    }
-});
-
-</script>
-
-
-<script>
-
 document.addEventListener('DOMContentLoaded', function () {
     // Node Graph resize bar
     const resizer = document.getElementById('dragHandle');
