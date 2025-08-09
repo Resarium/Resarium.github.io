@@ -1,3 +1,378 @@
+window.currentMapText = ""; // raw map text only
+
+function setMapText(mapText) {
+  window.currentMapText = String(mapText || "").replace(/\r\n?/g, "\n");
+}
+
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findBlocksByExactId(text, id) {
+  if (id == null) return [];
+  const s = String(text || "");
+  const target = String(id).trim();
+  const results = [];
+  const headerPattern = /(^|\n)[ \t]*\[[^\]\n]+\]/g; // any header at start of a line
+  let searchFrom = 0;
+
+  while (true) {
+    // Find the exact header
+    const exactNeedle = `\n[${target}]`;
+    let hStart = s.indexOf(exactNeedle, searchFrom);
+    let headerPrefixLen = 1; // default = "\n"
+
+    // Also handle if the very file starts with the header (no leading \n)
+    if (results.length === 0 && searchFrom === 0 && hStart !== 0 && s.startsWith(`[${target}]`)) {
+      hStart = 0;
+      headerPrefixLen = 0;
+    }
+
+    // If not found, try forgiving header: spaces inside the brackets
+    if (hStart === -1) {
+      const forgiving = new RegExp(`(^|\\n)[ \\t]*\\[\\s*${escapeRegExp(target)}\\s*\\]`, "g");
+      forgiving.lastIndex = searchFrom;
+      const m = forgiving.exec(s);
+      if (!m) break;
+      hStart = m.index + m[1].length;        // position at '['
+      headerPrefixLen = 1;                    // we consumed \n in group 1
+    }
+
+    // Find end of this header line (start of body)
+    const afterHeader = s.indexOf("\n", hStart);
+    const bodyStart = afterHeader === -1 ? s.length : afterHeader + 1;
+
+    // Find the next header at the start of a line to delimit the body
+    headerPattern.lastIndex = bodyStart;
+    const next = headerPattern.exec(s);
+    const bodyEnd = next ? next.index + (next[0].startsWith("\n") ? 1 : 0) : s.length;
+
+    const body = s.slice(bodyStart, bodyEnd).replace(/\s+$/,"");
+    results.push({ id: target, body });
+
+    // Move search forward; avoid infinite loops on the same header
+    searchFrom = bodyEnd;
+  }
+  return results;
+}
+
+// Parse body to ordered key=val list + a last-wins object view
+function parseKeyValBodyOrdered(body) {
+  const lines = String(body || "").split(/\r?\n/);
+  const entries = [];
+  const obj = {};
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const m = line.match(/^\s*([^=]+?)\s*=\s*(.*)\s*$/);
+    if (!m) continue;
+    const key = m[1].trim();
+    const value = m[2].trim();
+    entries.push({ key, value, line: i + 1 });
+    obj[key] = value; // last one wins
+  }
+  return { entries, obj };
+}
+
+// Merge ALL occurrences of [ID] in order: earlier first, later overrides
+function getMergedEntriesForId(mapText, id) {
+  const blocks = findBlocksByExactId(mapText, id);
+  const mergedEntries = [];
+  const mergedObj = {};
+  blocks.forEach((blk, blkIndex) => {
+    const { entries } = parseKeyValBodyOrdered(blk.body);
+    entries.forEach(en => {
+      mergedEntries.push({ ...en, sourceBlockIndex: blkIndex });
+      mergedObj[en.key] = en.value;
+    });
+  });
+  return { entries: mergedEntries, obj: mergedObj, occurrences: blocks.length };
+}
+
+// Extract a plausible ID token from a value like "ABC123, something"
+function extractIdToken(maybeId) {
+  if (maybeId == null) return null;
+  const m = String(maybeId).match(/[^\s,;()]+/);
+  return m ? m[0] : null;
+}
+
+function parseTaskForceUnitsFromObj(tfObj) {
+  return Object.keys(tfObj)
+    .filter(k => /^\d+$/.test(k))
+    .map(k => {
+      const [count, type] = String(tfObj[k]).split(",").map(s => s.trim());
+      const n = Number(count);
+      return (!type || Number.isNaN(n)) ? null : `${n} × ${type}`;
+    })
+    .filter(Boolean);
+}
+
+function taskForcePretty(tfObj, tfId) {
+  const units = parseTaskForceUnitsFromObj(tfObj);
+  if (units.length) return units.join(", ");
+  const name = tfObj.Name || tfObj.name || "";
+  return `${name ? name + " " : ""}(ID ${tfId})`;
+}
+
+function resolveTeamBundle(teamId) {
+  const mapText = window.currentMapText;
+  const team = getMergedEntriesForId(mapText, teamId);
+  if (!team.entries.length) {
+    return { team, script: null, taskforce: null };
+  }
+
+  const t = team.obj;
+  const scriptId = extractIdToken(t.Script || t.ScriptTypeId || t.ScriptId);
+  const tfId     = extractIdToken(t.TaskForce || t.TaskForceId || t.Taskforce);
+
+  const script   = scriptId ? getMergedEntriesForId(mapText, scriptId) : null;
+  const taskforce= tfId     ? getMergedEntriesForId(mapText, tfId)     : null;
+
+  return { team, script, taskforce };
+}
+
+function colorizeVal(v) {
+  const s = String(v).trim();
+  if (/^(no|false|0)$/i.test(s)) {
+    return `<span style="color:#f44336;">${s}</span>`;
+  }
+  if (/^(yes|true|1)$/i.test(s)) {
+    return `<span style="color:#17cb49;">${s}</span>`;
+  }
+  return `<span>${s}</span>`;
+}
+
+function renderKvLines(id, entries) {
+  const head = id ? `[${id}]` : '';
+  const rows = entries.map(e => `${e.key}=${colorizeVal(e.value)}`);
+  return [head, ...rows].filter(Boolean).join('\n');
+}
+
+function renderPanel(title, id, entries) {
+  // Fallback to empty array if no entries
+  const safeEntries = Array.isArray(entries) ? entries : [];
+
+  return `
+    <div class="peek-col" style="
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--input-border-dark);
+    ">
+      <div style="
+        padding: 4px 8px;
+        border-bottom: 1px solid var(--input-border-dark);
+        letter-spacing: .5px;
+        font-weight: 700;
+        background: var(--canvas-bg);
+      ">
+        ${title}
+      </div>
+
+      <div style="
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--input-border-dark);
+        font-family: var(--mono, "Inter", sans-serif);
+        font-size: 10px;
+        background: var(--canvas-bg);
+      ">
+        ${id ? `[${id}]` : `(not set)`}
+      </div>
+
+      <div style="
+        flex: 1;
+        overflow: auto;
+        font-family: var(--mono, "Inter", sans-serif);
+        font-size: 10px;
+        line-height: 1.35;
+        padding: 8px;
+      ">
+        ${safeEntries.map(e => `
+          <div style="display:flex;justify-content:space-between;gap:8px;">
+            <span>${e.key}</span>
+            <span>${colorizeVal(e.value)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function ensureteamInfoEl() {
+  let el = document.getElementById("teamInfo");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "teamInfo";
+    el.style.position = "absolute";
+    el.style.display = "none";
+    el.style.zIndex = 9999;
+    el.style.background = "transparent";
+    el.style.color = "inherit";
+    el.style.userSelect = "text";
+    el.style.padding = "0";
+    el.style.border = "none";
+    el.style.boxShadow = "none";
+	
+    el.style.width = "auto";
+    el.style.height = "auto";
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function hideteamInfo() {
+  const el = document.getElementById('teamInfo');
+  if (!el) return;
+  el.style.display = 'none';
+  el.innerHTML = '';
+}
+
+function showteamInfoRaw(teamId, anchorEvent) {
+  hideteamInfo(); // remove old panel if open
+
+  const el = document.createElement("div");
+  el.id = "teamInfo";
+  el.style.position = "absolute";
+  el.style.zIndex = 9999;
+
+  const cleanId = String(teamId).trim();
+  const bundle = resolveTeamBundle(cleanId);
+
+  const scriptId = bundle.team.obj
+    ? extractIdToken(bundle.team.obj.Script || bundle.team.obj.ScriptTypeId || bundle.team.obj.ScriptId) || ""
+    : "";
+  const tfId = bundle.team.obj
+    ? extractIdToken(bundle.team.obj.TaskForce || bundle.team.obj.TaskForceId || bundle.team.obj.Taskforce) || ""
+    : "";
+
+  const scriptEntries = (bundle.script && bundle.script.entries.length)
+    ? bundle.script.entries
+    : [{ key: "(not set)", value: "" }];
+
+  const tfEntries = (bundle.taskforce && bundle.taskforce.entries.length)
+    ? bundle.taskforce.entries
+    : [{ key: "(not set)", value: "" }];
+
+// Unified panel
+  function renderPeekColumn(title, id, entries) {
+    const safe = Array.isArray(entries) ? entries : [{ key: "(not set)", value: "" }];
+    const idLabel = id ? `[${id}]` : `(not set)`;
+  
+    return `
+      <div style="
+        flex:1 1 320px; min-width:280px; display:flex; flex-direction:column;
+        border-right:1px solid var(--input-border-dark);
+      ">
+        <div style="padding:6px 10px; font-weight:600; letter-spacing:.4px;
+                    border-bottom:1px solid var(--input-border-dark);">
+          ${title}
+        </div>
+        <div style="padding:6px 10px; font-family:var(--mono, "Inter", sans-serif);; font-size:10px;
+                    font-weight:600; border-bottom:1px solid var(--input-border-dark);">
+          ${idLabel}
+        </div>
+        <div style="flex:1; overflow:auto; padding:8px;
+                    font-family:var(--mono, "Inter", sans-serif);; font-size:10px; line-height:1.35;">
+          ${safe.map(e => `
+            <div style="display:flex; justify-content:space-between; gap:8px;">
+              <span>${e.key}</span><span>${colorizeVal(e.value)}</span>
+            </div>`).join("")}
+        </div>
+      </div>
+    `;
+  }
+  
+  el.innerHTML = `
+    <div class="peek-header" style="
+      display:flex; align-items:center; justify-content:space-between;
+      font-weight:600; padding:6px 10px;
+      border-bottom:1px solid var(--input-border-dark);
+      cursor:move; user-select:none;">
+      <div>TeamID: <span class="peek-val">${cleanId}</span></div>
+      <button class="peek-close" aria-label="Close" title="Close" style="
+        border:none; background:transparent; color:inherit; cursor:pointer; font-size:18px;">×</button>
+    </div>
+  
+    <div style="
+      display:flex; gap:0;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      width: 1080px; /* wider default so columns breathe */
+      height: 64vh;  /* reasonable height; scrolls inside columns if needed */
+      background: var(--canvas-bg);
+      border:1px solid var(--input-border-dark);
+      border-radius:6px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+      overflow:hidden;">
+      ${renderPeekColumn("TeamType", cleanId, bundle.team.entries)}
+      ${renderPeekColumn("ScriptType", scriptId, scriptEntries)}
+      ${renderPeekColumn("TaskForce", tfId, tfEntries)}
+    </div>
+  `;
+
+  document.body.appendChild(el);
+
+  const closeBtn = el.querySelector('.peek-close');
+  if (closeBtn) closeBtn.addEventListener('click', hideteamInfo);
+
+  const rect = el.getBoundingClientRect();
+  el.style.left = `${Math.max(0, (window.innerWidth - rect.width) / 2)}px`;
+  el.style.top = `${Math.max(0, (window.innerHeight - rect.height) / 2)}px`;
+
+  makeDraggable(el, '.peek-header');
+}
+
+function hideteamInfo() {
+  const el = document.getElementById("teamInfo");
+  if (el) el.remove();
+}
+
+function makeDraggable(containerEl, handleSelector) {
+  const handle = containerEl.querySelector(handleSelector) || containerEl;
+  let sx = 0, sy = 0, ox = 0, oy = 0, down = false;
+
+  const onDown = (e) => {
+    down = true;
+    const rect = containerEl.getBoundingClientRect();
+    ox = rect.left;
+    oy = rect.top;
+    sx = (e.touches ? e.touches[0].clientX : e.clientX);
+    sy = (e.touches ? e.touches[0].clientY : e.clientY);
+    e.preventDefault();
+  };
+  const onMove = (e) => {
+    if (!down) return;
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX);
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY);
+    containerEl.style.left = (ox + (cx - sx)) + "px";
+    containerEl.style.top  = (oy + (cy - sy)) + "px";
+  };
+  const onUp = () => { down = false; };
+
+  handle.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  // touch (?)
+  handle.addEventListener('touchstart', onDown, {passive:false});
+  window.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('touchend', onUp);
+}
+
+// Clickable IDs
+function makeTeamIdSpan(id) {
+  const clean = String(id).trim();
+  const span = document.createElement("span");
+  span.className = "team-link";
+  span.dataset.teamId = clean;
+  span.textContent = clean;
+  span.style.color = "var(--color-accent)";
+  span.style.cursor = "pointer";
+  span.style.textDecoration = "underline";
+  span.addEventListener("click", function (e) { showteamInfoRaw(clean, e); });
+  return span;
+}
+
 function regenerateEdges() {
     // verify raw when regenerating edges
     if (typeof raw === 'undefined') {
@@ -484,16 +859,37 @@ function displayInfo(raw){
         s3.innerHTML = `Actions`;
         d3.appendChild(s3);
         d3.open = true;
-        for(var i=0;i<raw.actions.length;i++){
-            var t = raw.actions[i].type;
+        for (var i = 0; i < raw.actions.length; i++) {
+            var tRaw = raw.actions[i].type;
+            var tNum = Number(tRaw);
+            var t = tRaw;
             var d = document.createElement('div');
-            d.innerHTML += `Action ${i}: ${actions[t].name}`;
             d.className = 'listItem';
             d.title = `${t}: ${actions[t].description}`;
-            for(j=0;j<7;j++){
-                if(actions[t].p[j]>0){
-                    if(j!=6) d.innerHTML += ` ${raw.actions[i].p[j]}`;
-                    else d.innerHTML += ` @${wp(raw.actions[i].p[j])}`;
+
+            // Base label
+            var labelSpan = document.createElement('span');
+            labelSpan.textContent = `Action ${i}: ${actions[t].name}`;
+            d.appendChild(labelSpan);
+			
+            var clickableActionIds = new Set([4, 5, 7, 80, 104, 107]);
+            for (j = 0; j < 7; j++) {
+                if (actions[t].p[j] > 0) {
+                    d.appendChild(document.createTextNode(' '));
+                    if (j == 6) {
+                        var wpVal = raw.actions[i].p[j];
+                        d.appendChild(document.createTextNode(`@${wp(wpVal)}`));
+                        continue;
+                    }
+            
+                    var val = String(raw.actions[i].p[j]);
+            
+                    // Make all parameters clickable
+                    if (clickableActionIds.has(tNum)) {
+                        d.appendChild(makeTeamIdSpan(val));
+                    } else {
+                        d.appendChild(document.createTextNode(val));
+                    }
                 }
             }
             d3.appendChild(d);
@@ -502,21 +898,7 @@ function displayInfo(raw){
         info.appendChild(d1);
         info.appendChild(d2);
         info.appendChild(d3);
-        /*
-        var d4 = document.createElement('details');
-        var s4 = document.createElement('summary');
-        s4.className = 'collapsible';
-        s4.innerHTML = 'Neighbouring Nodes'
-        
-        d4.appendChild(s4);
-        for(var item of raw.neighbour){
-            var d = document.createElement('div');
-            d.className = 'listItem';
-            d.innerHTML = `neighbour: ${item}`;
-            d4.appendChild(d);
-        }
-        info.appendChild(d4);*/
-        
+		
     }else{
         info.innerHTML = `
             Variable <br> 
@@ -689,8 +1071,11 @@ function parseINIString(data){
  * @returns {object} an object containing 3 arrays: nodes, edges and warnings
  */
 function parseText(data){
+    // Store raw text for case sensitive lookups
+    setMapText(data);
     config = parseINIString(data);
-    // nodes are treated as a map for easy access, will be convert to array during output
+	
+// nodes are treated as a map for easy access, will be convert to array during output
     var nodes = new Map();
     var edges = [];
     var warning = [];
@@ -959,3 +1344,10 @@ function wp(str){
 
 window.createWelcomeNetworkData = createWelcomeNetworkData;
 window.getThemedNetworkOptions = getThemedNetworkOptions;
+
+document.addEventListener('click', function(e){
+  var link = e.target && e.target.classList && e.target.classList.contains('team-link') ? e.target : (e.target.closest ? e.target.closest('.team-link') : null);
+  if (!link) return;
+  var id = link.dataset ? link.dataset.teamId : link.getAttribute('data-team-id');
+  if (id) showteamInfoRaw(id, e);
+});
